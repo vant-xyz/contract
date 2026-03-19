@@ -51,7 +51,6 @@ pub fn validate_accounts<'a>(
     Ok(())
 }
 
-
 pub fn verify_program_owned(
     account: &AccountInfo,
     program_id: &Pubkey,
@@ -66,7 +65,6 @@ pub fn verify_program_owned(
     }
     Ok(())
 }
-
 
 pub fn verify_pda(
     account: &AccountInfo,
@@ -85,7 +83,6 @@ pub fn verify_pda(
     Ok(bump)
 }
 
-
 pub fn verify_uninitialized(account: &AccountInfo) -> Result<(), ProgramError> {
     let data = account.try_borrow_data()?;
     if !data.is_empty() && data[0] != 0 {
@@ -94,7 +91,6 @@ pub fn verify_uninitialized(account: &AccountInfo) -> Result<(), ProgramError> {
     }
     Ok(())
 }
-
 
 pub fn verify_initialized(account: &AccountInfo) -> Result<(), ProgramError> {
     let data = account.try_borrow_data()?;
