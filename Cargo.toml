@@ -1,0 +1,25 @@
+[package]
+name = "vant_crypto"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "vant_crypto"
+
+[dependencies]
+solana-program = "1.18"
+
+[dev-dependencies]
+solana-program-test = "1.18"
+solana-sdk = "1.18"
+tokio = { version = "1", features = ["full"] }
+
+[features]
+no-entrypoint = []
+
+[profile.release]
+overflow-checks = true
+lto = "thin"
+opt-level = 3
+codegen-units = 1
