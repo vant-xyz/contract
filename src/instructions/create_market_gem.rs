@@ -21,7 +21,6 @@ use crate::{
     validation::{validate_accounts, verify_pda},
 };
 
-
 pub fn process_create_market_gem<'a>(
     program_id: &Pubkey,
     accounts: &'a [AccountInfo<'a>],
@@ -61,16 +60,11 @@ pub fn process_create_market_gem<'a>(
     let data_provider    = read_string(data, &mut offset, MAX_DATA_PROVIDER_LEN)?;
 
     msg!("MarketID: {}", market_id);
-    msg!("Title: {}", title);
-    msg!("StartTime: {}, Duration: {}s", start_time_utc, duration_seconds);
+
     let now = current_timestamp()?;
 
     if start_time_utc <= now {
-        msg!(
-            "start_time_utc ({}) must be in the future (now={})",
-            start_time_utc,
-            now
-        );
+        msg!("start_time_utc ({}) must be in the future (now={})", start_time_utc, now);
         return Err(MarketError::InvalidEndTime.into());
     }
 
@@ -83,22 +77,11 @@ pub fn process_create_market_gem<'a>(
         .checked_add(duration_seconds)
         .ok_or(MarketError::ArithmeticOverflow)?;
 
-    msg!("EndTime: {}", end_time_utc);
-
     let market_id_bytes = market_id.as_bytes();
-    let bump = verify_pda(
-        market_account,
-        &[MARKET_SEED, market_id_bytes],
-        program_id,
-    )?;
+    let bump = verify_pda(market_account, &[MARKET_SEED, market_id_bytes], program_id)?;
+
     let rent = Rent::get()?;
     let lamports_needed = rent.minimum_balance(MARKET_ACCOUNT_SIZE);
-
-    msg!(
-        "Creating GEM market account: {} lamports for {} bytes",
-        lamports_needed,
-        MARKET_ACCOUNT_SIZE
-    );
 
     let signer_seeds: &[&[u8]] = &[MARKET_SEED, market_id_bytes, &[bump]];
 
@@ -114,8 +97,6 @@ pub fn process_create_market_gem<'a>(
         &[signer_seeds],
     )?;
 
-    msg!("GEM market PDA account created");
-
     let market = Market {
         market_type:         MarketType::GEM,
         is_resolved:         false,
@@ -129,6 +110,7 @@ pub fn process_create_market_gem<'a>(
         data_provider,
         created_at:          now,
         bump,
+        asset:               String::new(), // GEM markets have no price asset
         direction:           None,
         target_price:        None,
         current_price:       None,

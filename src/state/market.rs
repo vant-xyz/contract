@@ -2,7 +2,8 @@ use solana_program::{msg, program_error::ProgramError, pubkey::Pubkey};
 
 use crate::{
     constants::{
-        MAX_DATA_PROVIDER_LEN, MAX_DESCRIPTION_LEN, MAX_OUTCOME_DESCRIPTION_LEN, MAX_TITLE_LEN,
+        MAX_ASSET_LEN, MAX_DATA_PROVIDER_LEN, MAX_DESCRIPTION_LEN,
+        MAX_OUTCOME_DESCRIPTION_LEN, MAX_TITLE_LEN,
     },
     error::MarketError,
     utils::*,
@@ -11,9 +12,10 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Copy)]
 #[repr(u8)]
 pub enum MarketType {
-    CAPPM = 0, 
-    GEM   = 1, 
+    CAPPM = 0,
+    GEM   = 1,
 }
+
 impl MarketType {
     pub fn from_u8(val: u8) -> Result<Self, ProgramError> {
         match val {
@@ -69,22 +71,25 @@ impl Outcome {
 
 #[derive(Debug, Clone)]
 pub struct Market {
-    pub market_type:        MarketType,
-    pub is_resolved:        bool,
-    pub creator:            Pubkey,
-    pub approved_settler:   Pubkey,
-    pub title:              String,
-    pub description:        String,
-    pub start_time_utc:     u64,
-    pub end_time_utc:       u64,
-    pub duration_seconds:   u64,
-    pub data_provider:      String,
-    pub created_at:         u64,
-    pub bump:               u8,
-    pub direction:     Option<Direction>,
-    pub target_price:  Option<u64>,
-    pub current_price: Option<u64>,
-    pub end_price:     Option<u64>,
+    pub market_type:         MarketType,
+    pub is_resolved:         bool,
+    pub creator:             Pubkey,
+    pub approved_settler:    Pubkey,
+    pub title:               String,
+    pub description:         String,
+    pub start_time_utc:      u64,
+    pub end_time_utc:        u64,
+    pub duration_seconds:    u64,
+    pub data_provider:       String,
+    pub created_at:          u64,
+    pub bump:                u8,
+    // CAPPM-specific
+    pub asset:               String,        // e.g. "BTC", "ETH", "SOL"
+    pub direction:           Option<Direction>,
+    pub target_price:        Option<u64>,
+    pub current_price:       Option<u64>,
+    pub end_price:           Option<u64>,
+    // Resolution
     pub outcome:             Option<Outcome>,
     pub outcome_description: String,
 }
@@ -105,6 +110,7 @@ impl Market {
         write_string(dst, &mut offset, &self.data_provider, MAX_DATA_PROVIDER_LEN)?;
         write_u64(dst, &mut offset, self.created_at)?;
         write_u8(dst, &mut offset, self.bump)?;
+        write_string(dst, &mut offset, &self.asset, MAX_ASSET_LEN)?;
 
         match self.direction {
             Some(d) => {
@@ -113,7 +119,7 @@ impl Market {
             }
             None => {
                 write_u8(dst, &mut offset, 0)?;
-                write_u8(dst, &mut offset, 0)?; 
+                write_u8(dst, &mut offset, 0)?;
             }
         }
 
@@ -187,6 +193,7 @@ impl Market {
         let data_provider    = read_string(src, &mut offset, MAX_DATA_PROVIDER_LEN)?;
         let created_at       = read_u64(src, &mut offset)?;
         let bump             = read_u8(src, &mut offset)?;
+        let asset            = read_string(src, &mut offset, MAX_ASSET_LEN)?;
 
         let direction_present = read_u8(src, &mut offset)?;
         let direction_val     = read_u8(src, &mut offset)?;
@@ -199,22 +206,24 @@ impl Market {
         let target_present = read_u8(src, &mut offset)?;
         let target_val     = read_u64(src, &mut offset)?;
         let target_price   = if target_present == 1 { Some(target_val) } else { None };
+
         let current_present = read_u8(src, &mut offset)?;
         let current_val     = read_u64(src, &mut offset)?;
         let current_price   = if current_present == 1 { Some(current_val) } else { None };
+
         let end_price_present = read_u8(src, &mut offset)?;
         let end_price_val     = read_u64(src, &mut offset)?;
         let end_price         = if end_price_present == 1 { Some(end_price_val) } else { None };
+
         let outcome_present = read_u8(src, &mut offset)?;
         let outcome_val     = read_u8(src, &mut offset)?;
-        let outcome         = if outcome_present == 1 {
+        let outcome = if outcome_present == 1 {
             Some(Outcome::from_u8(outcome_val)?)
         } else {
             None
         };
 
-        let outcome_description =
-            read_string(src, &mut offset, MAX_OUTCOME_DESCRIPTION_LEN)?;
+        let outcome_description = read_string(src, &mut offset, MAX_OUTCOME_DESCRIPTION_LEN)?;
 
         Ok(Market {
             market_type,
@@ -229,6 +238,7 @@ impl Market {
             data_provider,
             created_at,
             bump,
+            asset,
             direction,
             target_price,
             current_price,

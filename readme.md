@@ -37,11 +37,11 @@ Settlement log:     `["settlement", market_id]`
 
 ## Build
 
-cargo build-bpf --manifest-path=Cargo.toml
+cargo build-sbf --manifest-path=Cargo.toml
 
 ##  Deploy
 
-solana program deploy target/deploy/vant_crypto.so --url devnet --keypair vant_crypto.json
+solana program deploy target/deploy/vant_crypto.so --url devnet --keypair vant_crypto.json --program-id 2ffqwm4YARP7DVFT3Wz2UuWzCpAPNid7L1FdrJzt5sxg
 
 ## Test
 
