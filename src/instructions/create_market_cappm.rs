@@ -13,7 +13,8 @@ use solana_program::{
 use crate::{
     constants::{
         APPROVED_DATA_PROVIDERS, APPROVED_SETTLER, MARKET_ACCOUNT_SIZE, MARKET_SEED,
-        MAX_DATA_PROVIDER_LEN, MAX_DESCRIPTION_LEN, MAX_MARKET_ID_LEN, MAX_TITLE_LEN,
+        MAX_ASSET_LEN, MAX_DATA_PROVIDER_LEN, MAX_DESCRIPTION_LEN,
+        MAX_MARKET_ID_LEN, MAX_TITLE_LEN,
     },
     error::MarketError,
     state::{Direction, Market, MarketType},
@@ -21,6 +22,17 @@ use crate::{
     validation::{validate_accounts, verify_pda},
 };
 
+/// Instruction data layout (after discriminator byte):
+///   market_id        : u16 len + bytes
+///   title            : u16 len + bytes
+///   description      : u16 len + bytes
+///   start_time_utc   : u64 LE
+///   duration_seconds : u64 LE
+///   direction        : u8 (0=Above, 1=Below)
+///   target_price     : u64 LE (in cents)
+///   data_provider    : u16 len + bytes
+///   current_price    : u64 LE (in cents)
+///   asset            : u16 len + bytes (e.g. "BTC", "ETH", "SOL")
 pub fn process_create_market_cappm<'a>(
     program_id: &Pubkey,
     accounts: &'a [AccountInfo<'a>],
@@ -28,12 +40,7 @@ pub fn process_create_market_cappm<'a>(
 ) -> ProgramResult {
     msg!("=== CreateMarketCAPPM ===");
 
-    validate_accounts(
-        accounts,
-        3,
-        false,
-        &[0],
-    )?;
+    validate_accounts(accounts, 3, false, &[0])?;
 
     let accounts_iter          = &mut accounts.iter();
     let market_account         = next_account_info(accounts_iter)?;
@@ -66,19 +73,14 @@ pub fn process_create_market_cappm<'a>(
     let target_price     = read_u64(data, &mut offset)?;
     let data_provider    = read_string(data, &mut offset, MAX_DATA_PROVIDER_LEN)?;
     let current_price    = read_u64(data, &mut offset)?;
+    let asset            = read_string(data, &mut offset, MAX_ASSET_LEN)?;
 
-    msg!("MarketID: {}", market_id);
-    msg!("Title: {}", title);
-    msg!("StartTime: {}, Duration: {}s", start_time_utc, duration_seconds);
+    msg!("MarketID: {}, Asset: {}", market_id, asset);
 
     let now = current_timestamp()?;
 
     if start_time_utc <= now {
-        msg!(
-            "start_time_utc ({}) must be in the future (now={})",
-            start_time_utc,
-            now
-        );
+        msg!("start_time_utc ({}) must be in the future (now={})", start_time_utc, now);
         return Err(MarketError::InvalidEndTime.into());
     }
 
@@ -92,29 +94,22 @@ pub fn process_create_market_cappm<'a>(
         return Err(MarketError::InvalidDataProvider.into());
     }
 
+    if asset.is_empty() {
+        msg!("asset must not be empty");
+        return Err(MarketError::InvalidInstructionData.into());
+    }
+
     let direction = Direction::from_u8(direction_byte)?;
 
     let end_time_utc = start_time_utc
         .checked_add(duration_seconds)
         .ok_or(MarketError::ArithmeticOverflow)?;
 
-    msg!("EndTime: {}", end_time_utc);
-
     let market_id_bytes = market_id.as_bytes();
-    let bump = verify_pda(
-        market_account,
-        &[MARKET_SEED, market_id_bytes],
-        program_id,
-    )?;
+    let bump = verify_pda(market_account, &[MARKET_SEED, market_id_bytes], program_id)?;
 
     let rent = Rent::get()?;
     let lamports_needed = rent.minimum_balance(MARKET_ACCOUNT_SIZE);
-
-    msg!(
-        "Creating market account: {} lamports for {} bytes",
-        lamports_needed,
-        MARKET_ACCOUNT_SIZE
-    );
 
     let signer_seeds: &[&[u8]] = &[MARKET_SEED, market_id_bytes, &[bump]];
 
@@ -130,8 +125,6 @@ pub fn process_create_market_cappm<'a>(
         &[signer_seeds],
     )?;
 
-    msg!("Market PDA account created successfully");
-
     let market = Market {
         market_type:         MarketType::CAPPM,
         is_resolved:         false,
@@ -145,6 +138,7 @@ pub fn process_create_market_cappm<'a>(
         data_provider,
         created_at:          now,
         bump,
+        asset,
         direction:           Some(direction),
         target_price:        Some(target_price),
         current_price:       Some(current_price),

@@ -46,11 +46,7 @@ pub fn process_settle_market_cappm<'a>(
     }
 
     if settler.key != &APPROVED_SETTLER {
-        msg!(
-            "Unauthorized settler: expected {}, got {}",
-            APPROVED_SETTLER,
-            settler.key
-        );
+        msg!("Unauthorized settler: expected {}, got {}", APPROVED_SETTLER, settler.key);
         return Err(MarketError::UnauthorizedSettler.into());
     }
 
@@ -77,36 +73,26 @@ pub fn process_settle_market_cappm<'a>(
 
     let market_id_bytes = market_id.as_bytes();
     verify_pda(market_account, &[MARKET_SEED, market_id_bytes], program_id)?;
-
     verify_program_owned(market_account, program_id)?;
 
     let mut market = {
         let data = market_account.try_borrow_data()?;
         Market::unpack(&data)?
     };
-    
+
     if market.is_resolved {
         msg!("Market {} is already resolved", market_id);
         return Err(MarketError::MarketAlreadyResolved.into());
     }
-    
+
     let now = current_timestamp()?;
     if now < market.end_time_utc {
-        msg!(
-            "Market {} has not expired yet (end={}, now={})",
-            market_id,
-            market.end_time_utc,
-            now
-        );
+        msg!("Market {} has not expired yet (end={}, now={})", market_id, market.end_time_utc, now);
         return Err(MarketError::MarketNotExpired.into());
     }
 
     if settler.key != &market.approved_settler {
-        msg!(
-            "Settler {} does not match market.approved_settler {}",
-            settler.key,
-            market.approved_settler
-        );
+        msg!("Settler {} does not match market.approved_settler {}", settler.key, market.approved_settler);
         return Err(MarketError::UnauthorizedSettler.into());
     }
 
@@ -156,9 +142,11 @@ pub fn process_settle_market_cappm<'a>(
     let cents = end_price
         .checked_rem(100)
         .ok_or(MarketError::ArithmeticOverflow)?;
+
+    // Use market.asset instead of hardcoded "BTC"
     let outcome_description = format!(
-        "BTC closed at ${}.{:02} on Coinbase",
-        dollars, cents
+        "{} closed at ${}.{:02} on {}",
+        market.asset, dollars, cents, market.data_provider
     );
 
     market.is_resolved         = true;
@@ -200,8 +188,6 @@ pub fn process_settle_market_cappm<'a>(
         ],
         &[settlement_signer_seeds],
     )?;
-
-    msg!("SettlementLog PDA account created");
 
     let sig_hash = sha256(&settlement_signature);
     let msg_hash = sha256(expected_message.as_bytes());

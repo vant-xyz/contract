@@ -19,6 +19,7 @@ pub mod validation;
 use error::MarketError;
 use instructions::{
     process_create_market_cappm, process_create_market_gem,
+    process_get_market,
     process_settle_market_cappm, process_settle_market_gem,
 };
 use utils::read_string;
@@ -47,12 +48,10 @@ pub fn process_instruction<'a>(
             msg!("Dispatching CreateMarketCAPPM");
             process_create_market_cappm(program_id, accounts, data)
         }
-
         1 => {
             msg!("Dispatching CreateMarketGEM");
             process_create_market_gem(program_id, accounts, data)
         }
-
         2 => {
             msg!("Dispatching SettleMarketCAPPM");
             let mut offset = 0usize;
@@ -73,7 +72,16 @@ pub fn process_instruction<'a>(
                 })?;
             process_settle_market_gem(program_id, accounts, &data[offset..], &market_id)
         }
-
+        4 => {
+            msg!("Dispatching GetMarket");
+            let mut offset = 0usize;
+            let market_id = read_string(data, &mut offset, MAX_MARKET_ID_LEN)
+                .map_err(|_| {
+                    msg!("Failed to read market_id from get market data");
+                    MarketError::InvalidInstructionData
+                })?;
+            process_get_market(program_id, accounts, &market_id)
+        }
         _ => {
             msg!("Error: Unknown instruction discriminator: {}", discriminator);
             Err(MarketError::InvalidInstructionData.into())

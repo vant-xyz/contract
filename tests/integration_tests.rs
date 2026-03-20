@@ -34,6 +34,7 @@ mod tests {
             created_at:          1_700_000_000,
             bump:                255,
             direction:           Some(direction),
+            asset: "BTC".to_string(),
             target_price:        Some(target_price),
             current_price:       Some(9_400_000),
             end_price,
@@ -60,6 +61,7 @@ mod tests {
             target_price:        None,
             current_price:       None,
             end_price:           None,
+            asset: String::new(),
             outcome:             None,
             outcome_description: String::new(),
         }
@@ -466,6 +468,7 @@ mod tests {
             data_provider:       "C".repeat(64),
             created_at:          u64::MAX,
             bump:                255,
+            asset: "A".repeat(10),
             direction:           Some(Direction::Below),
             target_price:        Some(u64::MAX),
             current_price:       Some(u64::MAX),
