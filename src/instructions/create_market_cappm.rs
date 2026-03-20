@@ -17,13 +17,13 @@ use crate::{
     },
     error::MarketError,
     state::{Direction, Market, MarketType},
-    utils::{current_timestamp, read_string, read_u64},
+    utils::{current_timestamp, read_string, read_u64, read_u8},
     validation::{validate_accounts, verify_pda},
 };
 
-pub fn process_create_market_cappm(
+pub fn process_create_market_cappm<'a>(
     program_id: &Pubkey,
-    accounts: &[AccountInfo],
+    accounts: &'a [AccountInfo<'a>],
     data: &[u8],
 ) -> ProgramResult {
     msg!("=== CreateMarketCAPPM ===");

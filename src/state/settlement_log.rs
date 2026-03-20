@@ -16,6 +16,7 @@ pub struct SettlementLog {
     pub end_price: Option<u64>,
     pub outcome: Outcome,
     pub outcome_description: String,
+    pub signature_hash: [u8; 32],
     pub message_hash: [u8; 32],
     pub bump: u8,
 }

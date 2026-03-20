@@ -23,9 +23,9 @@ use crate::{
     validation::{validate_accounts, verify_pda, verify_program_owned},
 };
 
-pub fn process_settle_market_cappm(
+pub fn process_settle_market_cappm<'a>(
     program_id: &Pubkey,
-    accounts: &[AccountInfo],
+    accounts: &'a [AccountInfo<'a>],
     data: &[u8],
     market_id: &str,
 ) -> ProgramResult {

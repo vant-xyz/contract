@@ -27,9 +27,9 @@ use constants::MAX_MARKET_ID_LEN;
 #[cfg(not(feature = "no-entrypoint"))]
 entrypoint!(process_instruction);
 
-pub fn process_instruction(
+pub fn process_instruction<'a>(
     program_id: &Pubkey,
-    accounts: &[AccountInfo],
+    accounts: &'a [AccountInfo<'a>],
     instruction_data: &[u8],
 ) -> ProgramResult {
     if instruction_data.is_empty() {

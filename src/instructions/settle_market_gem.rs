@@ -24,9 +24,9 @@ use crate::{
     validation::{validate_accounts, verify_pda, verify_program_owned},
 };
 
-pub fn process_settle_market_gem(
+pub fn process_settle_market_gem<'a>(
     program_id: &Pubkey,
-    accounts: &[AccountInfo],
+    accounts: &'a [AccountInfo<'a>],
     data: &[u8],
     market_id: &str,
 ) -> ProgramResult {

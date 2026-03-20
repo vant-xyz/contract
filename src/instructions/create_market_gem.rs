@@ -22,9 +22,9 @@ use crate::{
 };
 
 
-pub fn process_create_market_gem(
+pub fn process_create_market_gem<'a>(
     program_id: &Pubkey,
-    accounts: &[AccountInfo],
+    accounts: &'a [AccountInfo<'a>],
     data: &[u8],
 ) -> ProgramResult {
     msg!("=== CreateMarketGEM ===");
