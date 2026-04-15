@@ -9,6 +9,7 @@ name = "vant_crypto"
 
 [dependencies]
 solana-program = "=2.1.21"
+borsh = "1"
 
 [dev-dependencies]
 solana-program-test = "=2.1.21"

@@ -19,6 +19,7 @@ pub mod validation;
 use error::MarketError;
 use instructions::{
     process_create_market_cappm, process_create_market_gem,
+    process_delegate_market,
     process_get_market,
     process_settle_market_cappm, process_settle_market_gem,
 };
@@ -81,6 +82,10 @@ pub fn process_instruction<'a>(
                     MarketError::InvalidInstructionData
                 })?;
             process_get_market(program_id, accounts, &market_id)
+        }
+        5 => {
+            msg!("Dispatching DelegateMarket");
+            process_delegate_market(program_id, accounts, data)
         }
         _ => {
             msg!("Error: Unknown instruction discriminator: {}", discriminator);
