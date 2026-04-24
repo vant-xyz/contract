@@ -1,6 +1,7 @@
 use solana_program::pubkey::Pubkey;
 
 pub const APPROVED_SETTLER: Pubkey = solana_program::pubkey!("82yc6SY3Hrx1Z4nwQFyy2aVPprqYF3GQvrBZDNzHCaP9");
+pub const ER_VALIDATOR: Pubkey = solana_program::pubkey!("MEUGGrYPxKk17hCr7wpT6s8dtNokZj5U2L57vjYMS8e");
 pub const MARKET_SEED: &[u8]     = b"market";
 pub const SETTLEMENT_SEED: &[u8] = b"settlement";
 pub const MARKET_ACCOUNT_SIZE:      usize = 3000;
