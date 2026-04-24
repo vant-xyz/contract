@@ -12,7 +12,7 @@ use solana_program::{
 };
 
 use crate::{
-    constants::{MARKET_SEED, MAX_MARKET_ID_LEN},
+    constants::{ER_VALIDATOR, MARKET_SEED, MAX_MARKET_ID_LEN},
     error::MarketError,
     utils::read_string,
     validation::verify_pda,
@@ -142,7 +142,7 @@ pub fn process_delegate_market<'a>(
     let args = DelegateArgs {
         commit_frequency_ms: 1_000,
         seeds: vec![MARKET_SEED.to_vec(), market_id_bytes.to_vec()],
-        validator: None,
+        validator: Some(ER_VALIDATOR),
     };
     let mut ix_data = vec![0u8; 8];
     args.serialize(&mut ix_data)

@@ -1,27 +1,27 @@
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
+    instruction::{AccountMeta, Instruction},
     msg,
-    program::invoke_signed,
+    program::invoke,
     pubkey::Pubkey,
-    rent::Rent,
-    system_instruction,
-    system_program,
-    sysvar::{instructions::ID as INSTRUCTIONS_SYSVAR_ID, Sysvar},
+    sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID,
 };
 
 use crate::{
-    constants::{
-        APPROVED_SETTLER, MARKET_SEED, SETTLEMENT_ACCOUNT_SIZE, SETTLEMENT_SEED,
-    },
+    constants::{APPROVED_SETTLER, MARKET_SEED},
     error::MarketError,
-    state::{Direction, Market, Outcome, SettlementLog},
-    utils::{
-        current_timestamp, read_signature, read_u64,
-        sha256, verify_settlement_signature_via_sysvar,
-    },
-    validation::{validate_accounts, verify_pda, verify_program_owned},
+    state::{Direction, Market, Outcome},
+    utils::{current_timestamp, read_signature, read_u64, verify_settlement_signature_via_sysvar},
+    validation::{validate_accounts, verify_pda},
 };
+
+const MAGIC_PROGRAM_ID: Pubkey =
+    solana_program::pubkey!("Magic11111111111111111111111111111111111111");
+const MAGIC_CONTEXT_ID: Pubkey =
+    solana_program::pubkey!("MagicContext1111111111111111111111111111111");
+
+const COMMIT_AND_UNDELEGATE_DATA: [u8; 4] = [2, 0, 0, 0];
 
 pub fn process_settle_market_cappm<'a>(
     program_id: &Pubkey,
@@ -31,14 +31,15 @@ pub fn process_settle_market_cappm<'a>(
 ) -> ProgramResult {
     msg!("=== SettleMarketCAPPM === MarketID={}", market_id);
 
-    validate_accounts(accounts, 5, false, &[0, 1])?;
+    // accounts: market_account, settler, instructions_sysvar, magic_program, magic_context
+    validate_accounts(accounts, 5, false, &[0, 1, 4])?;
 
-    let accounts_iter          = &mut accounts.iter();
-    let market_account         = next_account_info(accounts_iter)?;
-    let settlement_log_account = next_account_info(accounts_iter)?;
-    let settler                = next_account_info(accounts_iter)?;
-    let system_program_account = next_account_info(accounts_iter)?;
-    let instructions_sysvar    = next_account_info(accounts_iter)?;
+    let accounts_iter       = &mut accounts.iter();
+    let market_account      = next_account_info(accounts_iter)?;
+    let settler             = next_account_info(accounts_iter)?;
+    let instructions_sysvar = next_account_info(accounts_iter)?;
+    let magic_program       = next_account_info(accounts_iter)?;
+    let magic_context       = next_account_info(accounts_iter)?;
 
     if !settler.is_signer {
         msg!("Settler must be a signer");
@@ -50,13 +51,18 @@ pub fn process_settle_market_cappm<'a>(
         return Err(MarketError::UnauthorizedSettler.into());
     }
 
-    if system_program_account.key != &system_program::id() {
-        msg!("Invalid system_program account");
+    if instructions_sysvar.key != &INSTRUCTIONS_SYSVAR_ID {
+        msg!("Invalid instructions sysvar account");
         return Err(MarketError::InvalidAccount.into());
     }
 
-    if instructions_sysvar.key != &INSTRUCTIONS_SYSVAR_ID {
-        msg!("Invalid instructions sysvar account");
+    if magic_program.key != &MAGIC_PROGRAM_ID {
+        msg!("Invalid magic_program account");
+        return Err(MarketError::InvalidAccount.into());
+    }
+
+    if magic_context.key != &MAGIC_CONTEXT_ID {
+        msg!("Invalid magic_context account");
         return Err(MarketError::InvalidAccount.into());
     }
 
@@ -66,14 +72,13 @@ pub fn process_settle_market_cappm<'a>(
     }
 
     let mut offset = 0usize;
-    let end_price            = read_u64(data, &mut offset)?;
-    let settlement_signature = read_signature(data, &mut offset)?;
+    let end_price = read_u64(data, &mut offset)?;
+    let _settlement_signature = read_signature(data, &mut offset)?;
 
     msg!("EndPrice: {} cents", end_price);
 
     let market_id_bytes = market_id.as_bytes();
     verify_pda(market_account, &[MARKET_SEED, market_id_bytes], program_id)?;
-    verify_program_owned(market_account, program_id)?;
 
     let mut market = {
         let data = market_account.try_borrow_data()?;
@@ -110,10 +115,8 @@ pub fn process_settle_market_cappm<'a>(
         expected_message.as_bytes(),
     )?;
 
-    let direction = market.direction
-        .ok_or(MarketError::InvalidMarketType)?;
-    let target_price = market.target_price
-        .ok_or(MarketError::InvalidTargetPrice)?;
+    let direction    = market.direction.ok_or(MarketError::InvalidMarketType)?;
+    let target_price = market.target_price.ok_or(MarketError::InvalidTargetPrice)?;
 
     let outcome = match direction {
         Direction::Above => {
@@ -136,14 +139,9 @@ pub fn process_settle_market_cappm<'a>(
         }
     };
 
-    let dollars = end_price
-        .checked_div(100)
-        .ok_or(MarketError::ArithmeticOverflow)?;
-    let cents = end_price
-        .checked_rem(100)
-        .ok_or(MarketError::ArithmeticOverflow)?;
+    let dollars = end_price.checked_div(100).ok_or(MarketError::ArithmeticOverflow)?;
+    let cents   = end_price.checked_rem(100).ok_or(MarketError::ArithmeticOverflow)?;
 
-    // Use market.asset instead of hardcoded "BTC"
     let outcome_description = format!(
         "{} closed at ${}.{:02} on {}",
         market.asset, dollars, cents, market.data_provider
@@ -152,7 +150,7 @@ pub fn process_settle_market_cappm<'a>(
     market.is_resolved         = true;
     market.outcome             = Some(outcome);
     market.end_price           = Some(end_price);
-    market.outcome_description = outcome_description.clone();
+    market.outcome_description = outcome_description;
 
     {
         let mut account_data = market_account.try_borrow_mut_data()?;
@@ -161,53 +159,20 @@ pub fn process_settle_market_cappm<'a>(
 
     msg!("Market state updated: is_resolved=true, outcome={:?}", outcome);
 
-    let settlement_bump = verify_pda(
-        settlement_log_account,
-        &[SETTLEMENT_SEED, market_id_bytes],
-        program_id,
-    )?;
-
-    let rent = Rent::get()?;
-    let lamports_needed = rent.minimum_balance(SETTLEMENT_ACCOUNT_SIZE);
-
-    let settlement_signer_seeds: &[&[u8]] =
-        &[SETTLEMENT_SEED, market_id_bytes, &[settlement_bump]];
-
-    invoke_signed(
-        &system_instruction::create_account(
-            settler.key,
-            settlement_log_account.key,
-            lamports_needed,
-            SETTLEMENT_ACCOUNT_SIZE as u64,
-            program_id,
-        ),
-        &[
-            settler.clone(),
-            settlement_log_account.clone(),
-            system_program_account.clone(),
+    let commit_ix = Instruction {
+        program_id: MAGIC_PROGRAM_ID,
+        accounts: vec![
+            AccountMeta::new(*settler.key, true),
+            AccountMeta::new(*magic_context.key, false),
+            AccountMeta::new(*market_account.key, false),
         ],
-        &[settlement_signer_seeds],
-    )?;
-
-    let sig_hash = sha256(&settlement_signature);
-    let msg_hash = sha256(expected_message.as_bytes());
-
-    let log = SettlementLog {
-        market:              *market_account.key,
-        settled_at:          now,
-        settled_by:          *settler.key,
-        end_price:           Some(end_price),
-        outcome,
-        outcome_description,
-        signature_hash:      sig_hash,
-        message_hash:        msg_hash,
-        bump:                settlement_bump,
+        data: COMMIT_AND_UNDELEGATE_DATA.to_vec(),
     };
 
-    {
-        let mut log_data = settlement_log_account.try_borrow_mut_data()?;
-        log.pack(&mut log_data)?;
-    }
+    invoke(
+        &commit_ix,
+        &[settler.clone(), magic_context.clone(), market_account.clone(), magic_program.clone()],
+    )?;
 
     msg!("SettleMarketCAPPM complete. MarketID={}, Outcome={:?}", market_id, outcome);
     Ok(())
