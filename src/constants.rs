@@ -12,5 +12,13 @@ pub const MAX_DATA_PROVIDER_LEN:       usize = 64;
 pub const MAX_OUTCOME_DESCRIPTION_LEN: usize = 512;
 pub const MAX_MARKET_ID_LEN:           usize = 128;
 pub const MAX_ASSET_LEN:               usize = 10;
-pub const APPROVED_DATA_PROVIDERS: &[&str] = &["coinbase", "kalshi"];
+pub const APPROVED_DATA_PROVIDERS: &[&str] = &[
+    "coinbase",
+    "kalshi",
+    "the verge",
+    "sportradar",
+    "associated press",
+    "bloomberg",
+    "space.com",
+];
 pub const CU_BUDGET_TARGET: u64 = 150_000;
