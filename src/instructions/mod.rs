@@ -1,13 +1,23 @@
+pub mod cancel_vs_event;
+pub mod confirm_vs_outcome;
 pub mod create_market_cappm;
 pub mod create_market_gem;
+pub mod create_vs_event;
 pub mod delegate_market;
 pub mod get_market;
+pub mod join_vs_event;
+pub mod resolve_vs_event;
 pub mod settle_market_cappm;
 pub mod settle_market_gem;
 
+pub use cancel_vs_event::process_cancel_vs_event;
+pub use confirm_vs_outcome::process_confirm_vs_outcome;
 pub use create_market_cappm::process_create_market_cappm;
 pub use create_market_gem::process_create_market_gem;
+pub use create_vs_event::process_create_vs_event;
 pub use delegate_market::process_delegate_market;
 pub use get_market::process_get_market;
+pub use join_vs_event::process_join_vs_event;
+pub use resolve_vs_event::process_resolve_vs_event;
 pub use settle_market_cappm::process_settle_market_cappm;
 pub use settle_market_gem::process_settle_market_gem;

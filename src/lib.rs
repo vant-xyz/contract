@@ -2,11 +2,7 @@
 #![deny(clippy::arithmetic_side_effects)]
 
 use solana_program::{
-    account_info::AccountInfo,
-    entrypoint,
-    entrypoint::ProgramResult,
-    msg,
-    pubkey::Pubkey,
+    account_info::AccountInfo, entrypoint, entrypoint::ProgramResult, msg, pubkey::Pubkey,
 };
 
 pub mod constants;
@@ -16,15 +12,15 @@ pub mod state;
 pub mod utils;
 pub mod validation;
 
+use constants::MAX_MARKET_ID_LEN;
 use error::MarketError;
 use instructions::{
-    process_create_market_cappm, process_create_market_gem,
-    process_delegate_market,
-    process_get_market,
+    process_cancel_vs_event, process_confirm_vs_outcome, process_create_market_cappm,
+    process_create_market_gem, process_create_vs_event, process_delegate_market,
+    process_get_market, process_join_vs_event, process_resolve_vs_event,
     process_settle_market_cappm, process_settle_market_gem,
 };
 use utils::read_string;
-use constants::MAX_MARKET_ID_LEN;
 
 #[cfg(not(feature = "no-entrypoint"))]
 entrypoint!(process_instruction);
@@ -40,9 +36,12 @@ pub fn process_instruction<'a>(
     }
 
     let discriminator = instruction_data[0];
-    let data          = &instruction_data[1..];
+    let data = &instruction_data[1..];
 
-    msg!("Vant: processing instruction discriminator={}", discriminator);
+    msg!(
+        "Vant: processing instruction discriminator={}",
+        discriminator
+    );
 
     match discriminator {
         0 => {
@@ -56,39 +55,59 @@ pub fn process_instruction<'a>(
         2 => {
             msg!("Dispatching SettleMarketCAPPM");
             let mut offset = 0usize;
-            let market_id = read_string(data, &mut offset, MAX_MARKET_ID_LEN)
-                .map_err(|_| {
-                    msg!("Failed to read market_id from settle CAPPM data");
-                    MarketError::InvalidInstructionData
-                })?;
+            let market_id = read_string(data, &mut offset, MAX_MARKET_ID_LEN).map_err(|_| {
+                msg!("Failed to read market_id from settle CAPPM data");
+                MarketError::InvalidInstructionData
+            })?;
             process_settle_market_cappm(program_id, accounts, &data[offset..], &market_id)
         }
         3 => {
             msg!("Dispatching SettleMarketGEM");
             let mut offset = 0usize;
-            let market_id = read_string(data, &mut offset, MAX_MARKET_ID_LEN)
-                .map_err(|_| {
-                    msg!("Failed to read market_id from settle GEM data");
-                    MarketError::InvalidInstructionData
-                })?;
+            let market_id = read_string(data, &mut offset, MAX_MARKET_ID_LEN).map_err(|_| {
+                msg!("Failed to read market_id from settle GEM data");
+                MarketError::InvalidInstructionData
+            })?;
             process_settle_market_gem(program_id, accounts, &data[offset..], &market_id)
         }
         4 => {
             msg!("Dispatching GetMarket");
             let mut offset = 0usize;
-            let market_id = read_string(data, &mut offset, MAX_MARKET_ID_LEN)
-                .map_err(|_| {
-                    msg!("Failed to read market_id from get market data");
-                    MarketError::InvalidInstructionData
-                })?;
+            let market_id = read_string(data, &mut offset, MAX_MARKET_ID_LEN).map_err(|_| {
+                msg!("Failed to read market_id from get market data");
+                MarketError::InvalidInstructionData
+            })?;
             process_get_market(program_id, accounts, &market_id)
         }
         5 => {
             msg!("Dispatching DelegateMarket");
             process_delegate_market(program_id, accounts, data)
         }
+        6 => {
+            msg!("Dispatching CreateVSEvent");
+            process_create_vs_event(program_id, accounts, data)
+        }
+        7 => {
+            msg!("Dispatching JoinVSEvent");
+            process_join_vs_event(program_id, accounts, data)
+        }
+        8 => {
+            msg!("Dispatching ConfirmVSOutcome");
+            process_confirm_vs_outcome(program_id, accounts, data)
+        }
+        9 => {
+            msg!("Dispatching ResolveVSEvent");
+            process_resolve_vs_event(program_id, accounts, data)
+        }
+        10 => {
+            msg!("Dispatching CancelVSEvent");
+            process_cancel_vs_event(program_id, accounts, data)
+        }
         _ => {
-            msg!("Error: Unknown instruction discriminator: {}", discriminator);
+            msg!(
+                "Error: Unknown instruction discriminator: {}",
+                discriminator
+            );
             Err(MarketError::InvalidInstructionData.into())
         }
     }

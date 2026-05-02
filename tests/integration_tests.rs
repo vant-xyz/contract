@@ -1,14 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use solana_program::{
-        pubkey::Pubkey,
-        program_error::ProgramError,
-    };
+    use solana_program::{program_error::ProgramError, pubkey::Pubkey};
 
     use vant_crypto::{
         constants::{APPROVED_SETTLER, MARKET_ACCOUNT_SIZE, SETTLEMENT_ACCOUNT_SIZE},
         error::MarketError,
-        state::{Direction, Market, MarketType, Outcome, SettlementLog},
+        state::{Direction, Market, MarketType, Outcome, SettlementLog, VSEvent, VSMode, VSStatus},
         utils::sha256,
     };
 
@@ -21,22 +18,22 @@ mod tests {
         outcome: Option<Outcome>,
     ) -> Market {
         Market {
-            market_type:         MarketType::CAPPM,
+            market_type: MarketType::CAPPM,
             is_resolved,
-            creator:             Pubkey::new_unique(),
-            approved_settler:    APPROVED_SETTLER,
-            title:               "Will BTC > $95,000?".to_string(),
-            description:         "Based on Coinbase BTC-USD price".to_string(),
-            start_time_utc:      1_700_000_000,
+            creator: Pubkey::new_unique(),
+            approved_settler: APPROVED_SETTLER,
+            title: "Will BTC > $95,000?".to_string(),
+            description: "Based on Coinbase BTC-USD price".to_string(),
+            start_time_utc: 1_700_000_000,
             end_time_utc,
-            duration_seconds:    86400,
-            data_provider:       "coinbase".to_string(),
-            created_at:          1_700_000_000,
-            bump:                255,
-            direction:           Some(direction),
+            duration_seconds: 86400,
+            data_provider: "coinbase".to_string(),
+            created_at: 1_700_000_000,
+            bump: 255,
+            direction: Some(direction),
             asset: "BTC".to_string(),
-            target_price:        Some(target_price),
-            current_price:       Some(9_400_000),
+            target_price: Some(target_price),
+            current_price: Some(9_400_000),
             end_price,
             outcome,
             outcome_description: String::new(),
@@ -45,24 +42,24 @@ mod tests {
 
     fn make_market_gem(is_resolved: bool) -> Market {
         Market {
-            market_type:         MarketType::GEM,
+            market_type: MarketType::GEM,
             is_resolved,
-            creator:             Pubkey::new_unique(),
-            approved_settler:    APPROVED_SETTLER,
-            title:               "Will Team X win?".to_string(),
-            description:         "Premier League match".to_string(),
-            start_time_utc:      1_700_000_000,
-            end_time_utc:        1_700_086_400,
-            duration_seconds:    86400,
-            data_provider:       "kalshi".to_string(),
-            created_at:          1_700_000_000,
-            bump:                254,
-            direction:           None,
-            target_price:        None,
-            current_price:       None,
-            end_price:           None,
+            creator: Pubkey::new_unique(),
+            approved_settler: APPROVED_SETTLER,
+            title: "Will Team X win?".to_string(),
+            description: "Premier League match".to_string(),
+            start_time_utc: 1_700_000_000,
+            end_time_utc: 1_700_086_400,
+            duration_seconds: 86400,
+            data_provider: "kalshi".to_string(),
+            created_at: 1_700_000_000,
+            bump: 254,
+            direction: None,
+            target_price: None,
+            current_price: None,
+            end_price: None,
             asset: String::new(),
-            outcome:             None,
+            outcome: None,
             outcome_description: String::new(),
         }
     }
@@ -144,7 +141,7 @@ mod tests {
     #[test]
     fn test_market_gem_resolved_pack_unpack() {
         let mut market = make_market_gem(true);
-        market.outcome             = Some(Outcome::No);
+        market.outcome = Some(Outcome::No);
         market.outcome_description = "Team X lost 0-2 per ESPN".to_string();
 
         let mut buf = vec![0u8; MARKET_ACCOUNT_SIZE];
@@ -159,15 +156,15 @@ mod tests {
     #[test]
     fn test_settlement_log_cappm_pack_unpack_roundtrip() {
         let log = SettlementLog {
-            market:              Pubkey::new_unique(),
-            settled_at:          1_800_000_100,
-            settled_by:          APPROVED_SETTLER,
-            end_price:           Some(9_620_000),
-            outcome:             Outcome::Yes,
+            market: Pubkey::new_unique(),
+            settled_at: 1_800_000_100,
+            settled_by: APPROVED_SETTLER,
+            end_price: Some(9_620_000),
+            outcome: Outcome::Yes,
             outcome_description: "BTC closed at $96200.00 on Coinbase".to_string(),
-            signature_hash:      [0xABu8; 32],
-            message_hash:        [0xCDu8; 32],
-            bump:                253,
+            signature_hash: [0xABu8; 32],
+            message_hash: [0xCDu8; 32],
+            bump: 253,
         };
 
         let mut buf = vec![0u8; SETTLEMENT_ACCOUNT_SIZE];
@@ -180,7 +177,10 @@ mod tests {
         assert_eq!(recovered.settled_by, APPROVED_SETTLER);
         assert_eq!(recovered.end_price, Some(9_620_000));
         assert_eq!(recovered.outcome as u8, Outcome::Yes as u8);
-        assert_eq!(recovered.outcome_description, "BTC closed at $96200.00 on Coinbase");
+        assert_eq!(
+            recovered.outcome_description,
+            "BTC closed at $96200.00 on Coinbase"
+        );
         assert_eq!(recovered.signature_hash, [0xABu8; 32]);
         assert_eq!(recovered.message_hash, [0xCDu8; 32]);
         assert_eq!(recovered.bump, 253);
@@ -189,15 +189,15 @@ mod tests {
     #[test]
     fn test_settlement_log_gem_pack_unpack_roundtrip() {
         let log = SettlementLog {
-            market:              Pubkey::new_unique(),
-            settled_at:          1_800_000_200,
-            settled_by:          APPROVED_SETTLER,
-            end_price:           None, // GEM has no price
-            outcome:             Outcome::No,
+            market: Pubkey::new_unique(),
+            settled_at: 1_800_000_200,
+            settled_by: APPROVED_SETTLER,
+            end_price: None, // GEM has no price
+            outcome: Outcome::No,
             outcome_description: "Team X lost 0-3 per ESPN".to_string(),
-            signature_hash:      [0x11u8; 32],
-            message_hash:        [0x22u8; 32],
-            bump:                252,
+            signature_hash: [0x11u8; 32],
+            message_hash: [0x22u8; 32],
+            bump: 252,
         };
 
         let mut buf = vec![0u8; SETTLEMENT_ACCOUNT_SIZE];
@@ -211,9 +211,9 @@ mod tests {
 
     #[test]
     fn test_cappm_outcome_above_yes() {
-        let end_price   = 9_620_000u64;
-        let target      = 9_500_000u64;
-        let direction   = Direction::Above;
+        let end_price = 9_620_000u64;
+        let target = 9_500_000u64;
+        let direction = Direction::Above;
         let outcome = determine_cappm_outcome(direction, end_price, target);
         assert_eq!(outcome, Outcome::Yes, "end >= target (Above) should be YES");
     }
@@ -221,15 +221,19 @@ mod tests {
     #[test]
     fn test_cappm_outcome_above_exact_price_is_yes() {
         let end_price = 9_500_000u64;
-        let target    = 9_500_000u64;
+        let target = 9_500_000u64;
         let outcome = determine_cappm_outcome(Direction::Above, end_price, target);
-        assert_eq!(outcome, Outcome::Yes, "exact target price (Above) should be YES");
+        assert_eq!(
+            outcome,
+            Outcome::Yes,
+            "exact target price (Above) should be YES"
+        );
     }
 
     #[test]
     fn test_cappm_outcome_above_no() {
         let end_price = 9_499_999u64;
-        let target    = 9_500_000u64;
+        let target = 9_500_000u64;
         let outcome = determine_cappm_outcome(Direction::Above, end_price, target);
         assert_eq!(outcome, Outcome::No, "end < target (Above) should be NO");
     }
@@ -237,7 +241,7 @@ mod tests {
     #[test]
     fn test_cappm_outcome_below_yes() {
         let end_price = 9_400_000u64;
-        let target    = 9_500_000u64;
+        let target = 9_500_000u64;
         let outcome = determine_cappm_outcome(Direction::Below, end_price, target);
         assert_eq!(outcome, Outcome::Yes, "end < target (Below) should be YES");
     }
@@ -245,17 +249,56 @@ mod tests {
     #[test]
     fn test_cappm_outcome_below_exact_price_is_no() {
         let end_price = 9_500_000u64;
-        let target    = 9_500_000u64;
+        let target = 9_500_000u64;
         let outcome = determine_cappm_outcome(Direction::Below, end_price, target);
-        assert_eq!(outcome, Outcome::No, "exact target price (Below) should be NO");
+        assert_eq!(
+            outcome,
+            Outcome::No,
+            "exact target price (Below) should be NO"
+        );
     }
 
     #[test]
     fn test_cappm_outcome_below_no() {
         let end_price = 9_500_001u64;
-        let target    = 9_500_000u64;
+        let target = 9_500_000u64;
         let outcome = determine_cappm_outcome(Direction::Below, end_price, target);
         assert_eq!(outcome, Outcome::No, "end >= target (Below) should be NO");
+    }
+
+    #[test]
+    fn test_vs_event_pack_unpack_roundtrip() {
+        let p1 = Pubkey::new_unique();
+        let p2 = Pubkey::new_unique();
+        let ev = VSEvent {
+            vs_id: "VS_abc123".to_string(),
+            creator: p1,
+            title: "Will Barca win?".to_string(),
+            stake_cents: 5000,
+            mode: VSMode::Mutual,
+            threshold: 2,
+            status: VSStatus::Active,
+            created_at: 1_800_001_000,
+            join_deadline_utc: 1_800_001_600,
+            resolve_deadline_utc: 1_800_002_000,
+            participant_count: 2,
+            participants: vec![p1, p2],
+            outcome: Some(1),
+            outcome_description: "YES by mutual confirm".to_string(),
+            votes_yes: vec![p1, p2],
+            votes_no: vec![],
+            bump: 250,
+        };
+
+        let mut buf = vec![0u8; MARKET_ACCOUNT_SIZE];
+        ev.pack(&mut buf).expect("pack should succeed");
+        let got = VSEvent::unpack(&buf).expect("unpack should succeed");
+        assert_eq!(got.vs_id, "VS_abc123");
+        assert_eq!(got.mode, VSMode::Mutual);
+        assert_eq!(got.status, VSStatus::Active);
+        assert_eq!(got.participant_count, 2);
+        assert_eq!(got.participants.len(), 2);
+        assert_eq!(got.outcome, Some(1));
     }
 
     #[test]
@@ -270,7 +313,10 @@ mod tests {
         );
 
         let err = check_market_not_resolved(&market).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::MarketAlreadyResolved as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::MarketAlreadyResolved as u32)
+        );
     }
 
     #[test]
@@ -279,7 +325,10 @@ mod tests {
         let market = make_market_cappm(false, Direction::Above, 9_500_000, far_future, None, None);
         let now = 0u64;
         let err = check_market_expired(&market, now).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::MarketNotExpired as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::MarketNotExpired as u32)
+        );
     }
 
     #[test]
@@ -287,13 +336,17 @@ mod tests {
         let end_time = 1_800_000_000u64;
         let market = make_market_cappm(false, Direction::Above, 9_500_000, end_time, None, None);
         let now = end_time;
-        assert!(check_market_expired(&market, now).is_ok(), "now==end_time should be expired");
+        assert!(
+            check_market_expired(&market, now).is_ok(),
+            "now==end_time should be expired"
+        );
 
-        let now_before = end_time
-            .checked_sub(1)
-            .expect("end_time > 0");
+        let now_before = end_time.checked_sub(1).expect("end_time > 0");
         let err = check_market_expired(&market, now_before).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::MarketNotExpired as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::MarketNotExpired as u32)
+        );
     }
 
     #[test]
@@ -302,7 +355,10 @@ mod tests {
         let market = make_market_cappm(false, Direction::Above, 9_500_000, 0, None, None);
 
         let err = check_settler_authorized(&market, &wrong_settler).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::UnauthorizedSettler as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::UnauthorizedSettler as u32)
+        );
     }
 
     #[test]
@@ -315,7 +371,10 @@ mod tests {
     fn test_invalid_data_provider_error() {
         let bad_provider = "binance"; // not in approved list
         let err = check_data_provider(bad_provider).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::InvalidDataProvider as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::InvalidDataProvider as u32)
+        );
     }
 
     #[test]
@@ -327,7 +386,10 @@ mod tests {
     #[test]
     fn test_invalid_target_price_zero() {
         let err = check_target_price(0).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::InvalidTargetPrice as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::InvalidTargetPrice as u32)
+        );
     }
 
     #[test]
@@ -342,41 +404,54 @@ mod tests {
         let now = 1_800_000_000u64;
         let start_time_in_past = 1_700_000_000u64;
         let err = check_start_time(start_time_in_past, now).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::InvalidEndTime as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::InvalidEndTime as u32)
+        );
     }
 
     #[test]
     fn test_start_time_equal_now_error() {
         let now = 1_800_000_000u64;
         let err = check_start_time(now, now).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::InvalidEndTime as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::InvalidEndTime as u32)
+        );
     }
 
     #[test]
     fn test_start_time_future_ok() {
         let now = 1_800_000_000u64;
-        let future = now
-            .checked_add(1)
-            .expect("no overflow");
+        let future = now.checked_add(1).expect("no overflow");
         assert!(check_start_time(future, now).is_ok());
     }
 
     #[test]
     fn test_invalid_direction_byte_error() {
         let err = vant_crypto::state::Direction::from_u8(99).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::InvalidDirection as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::InvalidDirection as u32)
+        );
     }
 
     #[test]
     fn test_invalid_market_type_byte_error() {
         let err = vant_crypto::state::MarketType::from_u8(99).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::InvalidMarketType as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::InvalidMarketType as u32)
+        );
     }
 
     #[test]
     fn test_invalid_outcome_byte_error() {
         let err = vant_crypto::state::Outcome::from_u8(99).unwrap_err();
-        assert_eq!(err, ProgramError::Custom(MarketError::InvalidOutcome as u32));
+        assert_eq!(
+            err,
+            ProgramError::Custom(MarketError::InvalidOutcome as u32)
+        );
     }
 
     #[test]
@@ -430,10 +505,9 @@ mod tests {
     fn test_sha256_known_value() {
         let hash = sha256(b"");
         let expected = [
-            0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14,
-            0x9a, 0xfb, 0xf4, 0xc8, 0x99, 0x6f, 0xb9, 0x24,
-            0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c,
-            0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55,
+            0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4, 0xc8, 0x99, 0x6f,
+            0xb9, 0x24, 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c, 0xa4, 0x95, 0x99, 0x1b,
+            0x78, 0x52, 0xb8, 0x55,
         ];
         assert_eq!(hash, expected, "sha256('') mismatch");
     }
@@ -456,63 +530,76 @@ mod tests {
     #[test]
     fn test_market_account_size_sufficient() {
         let market = Market {
-            market_type:         MarketType::CAPPM,
-            is_resolved:         true,
-            creator:             Pubkey::new_unique(),
-            approved_settler:    APPROVED_SETTLER,
-            title:               "A".repeat(256),
-            description:         "B".repeat(1024),
-            start_time_utc:      u64::MAX,
-            end_time_utc:        u64::MAX,
-            duration_seconds:    u64::MAX,
-            data_provider:       "C".repeat(64),
-            created_at:          u64::MAX,
-            bump:                255,
+            market_type: MarketType::CAPPM,
+            is_resolved: true,
+            creator: Pubkey::new_unique(),
+            approved_settler: APPROVED_SETTLER,
+            title: "A".repeat(256),
+            description: "B".repeat(1024),
+            start_time_utc: u64::MAX,
+            end_time_utc: u64::MAX,
+            duration_seconds: u64::MAX,
+            data_provider: "C".repeat(64),
+            created_at: u64::MAX,
+            bump: 255,
             asset: "A".repeat(10),
-            direction:           Some(Direction::Below),
-            target_price:        Some(u64::MAX),
-            current_price:       Some(u64::MAX),
-            end_price:           Some(u64::MAX),
-            outcome:             Some(Outcome::Yes),
+            direction: Some(Direction::Below),
+            target_price: Some(u64::MAX),
+            current_price: Some(u64::MAX),
+            end_price: Some(u64::MAX),
+            outcome: Some(Outcome::Yes),
             outcome_description: "D".repeat(512),
         };
 
         let mut buf = vec![0u8; MARKET_ACCOUNT_SIZE];
-        market.pack(&mut buf).expect("Max-size market must fit in MARKET_ACCOUNT_SIZE");
+        market
+            .pack(&mut buf)
+            .expect("Max-size market must fit in MARKET_ACCOUNT_SIZE");
     }
 
     #[test]
     fn test_settlement_account_size_sufficient() {
         let log = SettlementLog {
-            market:              Pubkey::new_unique(),
-            settled_at:          u64::MAX,
-            settled_by:          APPROVED_SETTLER,
-            end_price:           Some(u64::MAX),
-            outcome:             Outcome::No,
+            market: Pubkey::new_unique(),
+            settled_at: u64::MAX,
+            settled_by: APPROVED_SETTLER,
+            end_price: Some(u64::MAX),
+            outcome: Outcome::No,
             outcome_description: "E".repeat(512),
-            signature_hash:      [0xFFu8; 32],
-            message_hash:        [0xFFu8; 32],
-            bump:                255,
+            signature_hash: [0xFFu8; 32],
+            message_hash: [0xFFu8; 32],
+            bump: 255,
         };
 
         let mut buf = vec![0u8; SETTLEMENT_ACCOUNT_SIZE];
-        log.pack(&mut buf).expect("Max-size SettlementLog must fit in SETTLEMENT_ACCOUNT_SIZE");
+        log.pack(&mut buf)
+            .expect("Max-size SettlementLog must fit in SETTLEMENT_ACCOUNT_SIZE");
     }
 
     fn determine_cappm_outcome(direction: Direction, end_price: u64, target_price: u64) -> Outcome {
         match direction {
             Direction::Above => {
-                if end_price >= target_price { Outcome::Yes } else { Outcome::No }
+                if end_price >= target_price {
+                    Outcome::Yes
+                } else {
+                    Outcome::No
+                }
             }
             Direction::Below => {
-                if end_price < target_price { Outcome::Yes } else { Outcome::No }
+                if end_price < target_price {
+                    Outcome::Yes
+                } else {
+                    Outcome::No
+                }
             }
         }
     }
 
     fn check_market_not_resolved(market: &Market) -> Result<(), ProgramError> {
         if market.is_resolved {
-            return Err(ProgramError::Custom(MarketError::MarketAlreadyResolved as u32));
+            return Err(ProgramError::Custom(
+                MarketError::MarketAlreadyResolved as u32,
+            ));
         }
         Ok(())
     }
@@ -526,7 +613,9 @@ mod tests {
 
     fn check_settler_authorized(market: &Market, settler: &Pubkey) -> Result<(), ProgramError> {
         if settler != &market.approved_settler {
-            return Err(ProgramError::Custom(MarketError::UnauthorizedSettler as u32));
+            return Err(ProgramError::Custom(
+                MarketError::UnauthorizedSettler as u32,
+            ));
         }
         Ok(())
     }
@@ -534,7 +623,9 @@ mod tests {
     fn check_data_provider(provider: &str) -> Result<(), ProgramError> {
         use vant_crypto::constants::APPROVED_DATA_PROVIDERS;
         if !APPROVED_DATA_PROVIDERS.contains(&provider) {
-            return Err(ProgramError::Custom(MarketError::InvalidDataProvider as u32));
+            return Err(ProgramError::Custom(
+                MarketError::InvalidDataProvider as u32,
+            ));
         }
         Ok(())
     }
