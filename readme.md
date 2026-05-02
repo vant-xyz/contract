@@ -56,6 +56,11 @@ Lifecycle:
 Note: this program stores verifiable VS state and outcome; custody/funds movement is
 handled off-chain by Vantic backend ledger logic.
 
+Undelegation callback:
+- The owner program handles MagicBlock undelegation callback discriminator
+  `[196, 28, 41, 206, 48, 37, 51, 167]` natively.
+- This is required for successful undelegation/finalization on base layer.
+
 ## PDAs
 
 Market account: `["market", market_id]`

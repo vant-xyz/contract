@@ -9,6 +9,7 @@ pub mod join_vs_event;
 pub mod resolve_vs_event;
 pub mod settle_market_cappm;
 pub mod settle_market_gem;
+pub mod undelegate_callback;
 
 pub use cancel_vs_event::process_cancel_vs_event;
 pub use confirm_vs_outcome::process_confirm_vs_outcome;
@@ -21,3 +22,4 @@ pub use join_vs_event::process_join_vs_event;
 pub use resolve_vs_event::process_resolve_vs_event;
 pub use settle_market_cappm::process_settle_market_cappm;
 pub use settle_market_gem::process_settle_market_gem;
+pub use undelegate_callback::{process_undelegate_callback, UNDELEGATE_CALLBACK_DISCRIMINATOR};

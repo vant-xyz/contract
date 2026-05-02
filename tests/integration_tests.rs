@@ -5,6 +5,8 @@ mod tests {
     use vant_crypto::{
         constants::{APPROVED_SETTLER, MARKET_ACCOUNT_SIZE, SETTLEMENT_ACCOUNT_SIZE},
         error::MarketError,
+        instructions::UNDELEGATE_CALLBACK_DISCRIMINATOR,
+        process_instruction,
         state::{Direction, Market, MarketType, Outcome, SettlementLog, VSEvent, VSMode, VSStatus},
         utils::sha256,
     };
@@ -299,6 +301,24 @@ mod tests {
         assert_eq!(got.participant_count, 2);
         assert_eq!(got.participants.len(), 2);
         assert_eq!(got.outcome, Some(1));
+    }
+
+    #[test]
+    fn test_undelegate_callback_dispatch_ok_with_exact_discriminator() {
+        let program_id = Pubkey::new_unique();
+        let accounts = [];
+        let res = process_instruction(&program_id, &accounts, &UNDELEGATE_CALLBACK_DISCRIMINATOR);
+        assert!(res.is_ok(), "undelegate callback should be accepted");
+    }
+
+    #[test]
+    fn test_undelegate_callback_dispatch_ok_with_extra_payload() {
+        let program_id = Pubkey::new_unique();
+        let accounts = [];
+        let mut data = Vec::from(UNDELEGATE_CALLBACK_DISCRIMINATOR);
+        data.extend_from_slice(&[1, 2, 3, 4]);
+        let res = process_instruction(&program_id, &accounts, &data);
+        assert!(res.is_ok(), "undelegate callback with extra bytes should be accepted");
     }
 
     #[test]

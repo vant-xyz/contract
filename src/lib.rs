@@ -18,7 +18,8 @@ use instructions::{
     process_cancel_vs_event, process_confirm_vs_outcome, process_create_market_cappm,
     process_create_market_gem, process_create_vs_event, process_delegate_market,
     process_get_market, process_join_vs_event, process_resolve_vs_event,
-    process_settle_market_cappm, process_settle_market_gem,
+    process_settle_market_cappm, process_settle_market_gem, process_undelegate_callback,
+    UNDELEGATE_CALLBACK_DISCRIMINATOR,
 };
 use utils::read_string;
 
@@ -30,6 +31,14 @@ pub fn process_instruction<'a>(
     accounts: &'a [AccountInfo<'a>],
     instruction_data: &[u8],
 ) -> ProgramResult {
+    if instruction_data.len() >= UNDELEGATE_CALLBACK_DISCRIMINATOR.len()
+        && instruction_data[..UNDELEGATE_CALLBACK_DISCRIMINATOR.len()]
+            == UNDELEGATE_CALLBACK_DISCRIMINATOR
+    {
+        msg!("Dispatching UndelegateCallback");
+        return process_undelegate_callback(program_id, accounts, instruction_data);
+    }
+
     if instruction_data.is_empty() {
         msg!("Error: Empty instruction data");
         return Err(MarketError::InvalidInstructionData.into());
