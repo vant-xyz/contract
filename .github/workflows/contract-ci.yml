@@ -44,7 +44,13 @@ jobs:
       - name: Install Solana CLI
         run: |
           sh -c "$(curl -sSfL https://release.anza.xyz/v3.0.10/install)"
-          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+          SOLANA_BIN="$(find "$HOME/.local/share/solana/install" -type f -name solana | head -n 1 | xargs dirname)"
+          if [ -z "$SOLANA_BIN" ]; then
+            echo "Could not locate solana binary after install"
+            exit 1
+          fi
+          echo "$SOLANA_BIN" >> "$GITHUB_PATH"
+          export PATH="$SOLANA_BIN:$PATH"
           solana --version
           cargo build-sbf --version
 
