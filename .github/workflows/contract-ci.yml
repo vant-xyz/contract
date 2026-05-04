@@ -18,7 +18,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.95.0
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
@@ -41,9 +43,10 @@ jobs:
 
       - name: Install Solana CLI
         run: |
-          sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.21/install)"
+          sh -c "$(curl -sSfL https://release.anza.xyz/v3.0.10/install)"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
           solana --version
+          cargo build-sbf --version
 
       - name: Build SBF
         run: cargo build-sbf --manifest-path Cargo.toml
@@ -64,7 +67,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.95.0
 
       - name: Install solana-verify
         run: cargo install solana-verify --locked
