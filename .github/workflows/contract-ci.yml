@@ -1,0 +1,88 @@
+name: Vant Crypto CI
+
+on:
+  pull_request:
+  push:
+    branches: ["master"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
+
+      - name: Run tests
+        run: cargo test -q
+
+  build:
+    name: Build SBF
+    runs-on: ubuntu-latest
+    needs: [test]
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Solana CLI
+        uses: avinassh/solana-deploy-action@v1.3.0
+        with:
+          solana-version: "2.1.21"
+          keypair: "[]"
+          skip-deploy: true
+
+      - name: Build SBF
+        run: cargo build-sbf --manifest-path Cargo.toml
+
+  verify:
+    name: Solana Verify
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: ${{ github.event_name != 'pull_request' }}
+    defaults:
+      run:
+        working-directory: .
+    env:
+      VERIFY_PROGRAM_ID: ${{ vars.VANT_PROGRAM_ID }}
+      VERIFY_CLUSTER_URL: ${{ vars.VANT_VERIFY_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install solana-verify
+        run: cargo install solana-verify --locked
+
+      - name: Run solana-verify
+        run: |
+          if [ -z "$VERIFY_PROGRAM_ID" ]; then
+            echo "Repository variable VANT_PROGRAM_ID is required"
+            exit 1
+          fi
+          if [ -z "$VERIFY_CLUSTER_URL" ]; then
+            VERIFY_CLUSTER_URL="devnet"
+          fi
+
+          solana-verify verify-from-repo \
+            https://github.com/${{ github.repository }} \
+            --program-id "$VERIFY_PROGRAM_ID" \
+            --commit-hash "${{ github.sha }}" \
+            --url "$VERIFY_CLUSTER_URL" \
+            --mount-path .
