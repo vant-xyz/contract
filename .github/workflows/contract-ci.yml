@@ -40,11 +40,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Solana CLI
-        uses: avinassh/solana-deploy-action@v1.3.0
-        with:
-          solana-version: "2.1.21"
-          keypair: "[]"
-          skip-deploy: true
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.21/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+          solana --version
 
       - name: Build SBF
         run: cargo build-sbf --manifest-path Cargo.toml
