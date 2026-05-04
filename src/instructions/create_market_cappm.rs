@@ -5,16 +5,14 @@ use solana_program::{
     program::invoke_signed,
     pubkey::Pubkey,
     rent::Rent,
-    system_instruction,
-    system_program,
+    system_instruction, system_program,
     sysvar::Sysvar,
 };
 
 use crate::{
     constants::{
-        APPROVED_DATA_PROVIDERS, APPROVED_SETTLER, MARKET_ACCOUNT_SIZE, MARKET_SEED,
-        MAX_ASSET_LEN, MAX_DATA_PROVIDER_LEN, MAX_DESCRIPTION_LEN,
-        MAX_MARKET_ID_LEN, MAX_TITLE_LEN,
+        APPROVED_DATA_PROVIDERS, APPROVED_SETTLER, MARKET_ACCOUNT_SIZE, MARKET_SEED, MAX_ASSET_LEN,
+        MAX_DATA_PROVIDER_LEN, MAX_DESCRIPTION_LEN, MAX_MARKET_ID_LEN, MAX_TITLE_LEN,
     },
     error::MarketError,
     state::{Direction, Market, MarketType},
@@ -42,9 +40,9 @@ pub fn process_create_market_cappm<'a>(
 
     validate_accounts(accounts, 3, false, &[0])?;
 
-    let accounts_iter          = &mut accounts.iter();
-    let market_account         = next_account_info(accounts_iter)?;
-    let creator                = next_account_info(accounts_iter)?;
+    let accounts_iter = &mut accounts.iter();
+    let market_account = next_account_info(accounts_iter)?;
+    let creator = next_account_info(accounts_iter)?;
     let system_program_account = next_account_info(accounts_iter)?;
 
     if !creator.is_signer {
@@ -64,23 +62,27 @@ pub fn process_create_market_cappm<'a>(
 
     let mut offset = 0usize;
 
-    let market_id        = read_string(data, &mut offset, MAX_MARKET_ID_LEN)?;
-    let title            = read_string(data, &mut offset, MAX_TITLE_LEN)?;
-    let description      = read_string(data, &mut offset, MAX_DESCRIPTION_LEN)?;
-    let start_time_utc   = read_u64(data, &mut offset)?;
+    let market_id = read_string(data, &mut offset, MAX_MARKET_ID_LEN)?;
+    let title = read_string(data, &mut offset, MAX_TITLE_LEN)?;
+    let description = read_string(data, &mut offset, MAX_DESCRIPTION_LEN)?;
+    let start_time_utc = read_u64(data, &mut offset)?;
     let duration_seconds = read_u64(data, &mut offset)?;
-    let direction_byte   = read_u8(data, &mut offset)?;
-    let target_price     = read_u64(data, &mut offset)?;
-    let data_provider    = read_string(data, &mut offset, MAX_DATA_PROVIDER_LEN)?;
-    let current_price    = read_u64(data, &mut offset)?;
-    let asset            = read_string(data, &mut offset, MAX_ASSET_LEN)?;
+    let direction_byte = read_u8(data, &mut offset)?;
+    let target_price = read_u64(data, &mut offset)?;
+    let data_provider = read_string(data, &mut offset, MAX_DATA_PROVIDER_LEN)?;
+    let current_price = read_u64(data, &mut offset)?;
+    let asset = read_string(data, &mut offset, MAX_ASSET_LEN)?;
 
     msg!("MarketID: {}, Asset: {}", market_id, asset);
 
     let now = current_timestamp()?;
 
     if start_time_utc <= now {
-        msg!("start_time_utc ({}) must be in the future (now={})", start_time_utc, now);
+        msg!(
+            "start_time_utc ({}) must be in the future (now={})",
+            start_time_utc,
+            now
+        );
         return Err(MarketError::InvalidEndTime.into());
     }
 
@@ -121,29 +123,33 @@ pub fn process_create_market_cappm<'a>(
             MARKET_ACCOUNT_SIZE as u64,
             program_id,
         ),
-        &[creator.clone(), market_account.clone(), system_program_account.clone()],
+        &[
+            creator.clone(),
+            market_account.clone(),
+            system_program_account.clone(),
+        ],
         &[signer_seeds],
     )?;
 
     let market = Market {
-        market_type:         MarketType::CAPPM,
-        is_resolved:         false,
-        creator:             *creator.key,
-        approved_settler:    APPROVED_SETTLER,
+        market_type: MarketType::CAPPM,
+        is_resolved: false,
+        creator: *creator.key,
+        approved_settler: APPROVED_SETTLER,
         title,
         description,
         start_time_utc,
         end_time_utc,
         duration_seconds,
         data_provider,
-        created_at:          now,
+        created_at: now,
         bump,
         asset,
-        direction:           Some(direction),
-        target_price:        Some(target_price),
-        current_price:       Some(current_price),
-        end_price:           None,
-        outcome:             None,
+        direction: Some(direction),
+        target_price: Some(target_price),
+        current_price: Some(current_price),
+        end_price: None,
+        outcome: None,
         outcome_description: String::new(),
     };
 

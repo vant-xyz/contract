@@ -34,12 +34,12 @@ pub fn process_settle_market_cappm<'a>(
     // accounts: market_account, settler, instructions_sysvar, magic_program, magic_context
     validate_accounts(accounts, 5, false, &[0, 1, 4])?;
 
-    let accounts_iter       = &mut accounts.iter();
-    let market_account      = next_account_info(accounts_iter)?;
-    let settler             = next_account_info(accounts_iter)?;
+    let accounts_iter = &mut accounts.iter();
+    let market_account = next_account_info(accounts_iter)?;
+    let settler = next_account_info(accounts_iter)?;
     let instructions_sysvar = next_account_info(accounts_iter)?;
-    let magic_program       = next_account_info(accounts_iter)?;
-    let magic_context       = next_account_info(accounts_iter)?;
+    let magic_program = next_account_info(accounts_iter)?;
+    let magic_context = next_account_info(accounts_iter)?;
 
     if !settler.is_signer {
         msg!("Settler must be a signer");
@@ -47,7 +47,11 @@ pub fn process_settle_market_cappm<'a>(
     }
 
     if settler.key != &APPROVED_SETTLER {
-        msg!("Unauthorized settler: expected {}, got {}", APPROVED_SETTLER, settler.key);
+        msg!(
+            "Unauthorized settler: expected {}, got {}",
+            APPROVED_SETTLER,
+            settler.key
+        );
         return Err(MarketError::UnauthorizedSettler.into());
     }
 
@@ -67,7 +71,10 @@ pub fn process_settle_market_cappm<'a>(
     }
 
     if data.len() < 8 + 64 {
-        msg!("Instruction data too short: {} bytes (need >= 72)", data.len());
+        msg!(
+            "Instruction data too short: {} bytes (need >= 72)",
+            data.len()
+        );
         return Err(MarketError::InvalidInstructionData.into());
     }
 
@@ -92,12 +99,21 @@ pub fn process_settle_market_cappm<'a>(
 
     let now = current_timestamp()?;
     if now < market.end_time_utc {
-        msg!("Market {} has not expired yet (end={}, now={})", market_id, market.end_time_utc, now);
+        msg!(
+            "Market {} has not expired yet (end={}, now={})",
+            market_id,
+            market.end_time_utc,
+            now
+        );
         return Err(MarketError::MarketNotExpired.into());
     }
 
     if settler.key != &market.approved_settler {
-        msg!("Settler {} does not match market.approved_settler {}", settler.key, market.approved_settler);
+        msg!(
+            "Settler {} does not match market.approved_settler {}",
+            settler.key,
+            market.approved_settler
+        );
         return Err(MarketError::UnauthorizedSettler.into());
     }
 
@@ -115,41 +131,61 @@ pub fn process_settle_market_cappm<'a>(
         expected_message.as_bytes(),
     )?;
 
-    let direction    = market.direction.ok_or(MarketError::InvalidMarketType)?;
+    let direction = market.direction.ok_or(MarketError::InvalidMarketType)?;
     let target_price = market.target_price.ok_or(MarketError::InvalidTargetPrice)?;
 
     let outcome = match direction {
         Direction::Above => {
             if end_price >= target_price {
-                msg!("Outcome: YES (end_price {} >= target {})", end_price, target_price);
+                msg!(
+                    "Outcome: YES (end_price {} >= target {})",
+                    end_price,
+                    target_price
+                );
                 Outcome::Yes
             } else {
-                msg!("Outcome: NO (end_price {} < target {})", end_price, target_price);
+                msg!(
+                    "Outcome: NO (end_price {} < target {})",
+                    end_price,
+                    target_price
+                );
                 Outcome::No
             }
         }
         Direction::Below => {
             if end_price < target_price {
-                msg!("Outcome: YES (end_price {} < target {})", end_price, target_price);
+                msg!(
+                    "Outcome: YES (end_price {} < target {})",
+                    end_price,
+                    target_price
+                );
                 Outcome::Yes
             } else {
-                msg!("Outcome: NO (end_price {} >= target {})", end_price, target_price);
+                msg!(
+                    "Outcome: NO (end_price {} >= target {})",
+                    end_price,
+                    target_price
+                );
                 Outcome::No
             }
         }
     };
 
-    let dollars = end_price.checked_div(100).ok_or(MarketError::ArithmeticOverflow)?;
-    let cents   = end_price.checked_rem(100).ok_or(MarketError::ArithmeticOverflow)?;
+    let dollars = end_price
+        .checked_div(100)
+        .ok_or(MarketError::ArithmeticOverflow)?;
+    let cents = end_price
+        .checked_rem(100)
+        .ok_or(MarketError::ArithmeticOverflow)?;
 
     let outcome_description = format!(
         "{} closed at ${}.{:02} on {}",
         market.asset, dollars, cents, market.data_provider
     );
 
-    market.is_resolved         = true;
-    market.outcome             = Some(outcome);
-    market.end_price           = Some(end_price);
+    market.is_resolved = true;
+    market.outcome = Some(outcome);
+    market.end_price = Some(end_price);
     market.outcome_description = outcome_description;
 
     {
@@ -157,7 +193,10 @@ pub fn process_settle_market_cappm<'a>(
         market.pack(&mut account_data)?;
     }
 
-    msg!("Market state updated: is_resolved=true, outcome={:?}", outcome);
+    msg!(
+        "Market state updated: is_resolved=true, outcome={:?}",
+        outcome
+    );
 
     let commit_ix = Instruction {
         program_id: MAGIC_PROGRAM_ID,
@@ -171,9 +210,18 @@ pub fn process_settle_market_cappm<'a>(
 
     invoke(
         &commit_ix,
-        &[settler.clone(), magic_context.clone(), market_account.clone(), magic_program.clone()],
+        &[
+            settler.clone(),
+            magic_context.clone(),
+            market_account.clone(),
+            magic_program.clone(),
+        ],
     )?;
 
-    msg!("SettleMarketCAPPM complete. MarketID={}, Outcome={:?}", market_id, outcome);
+    msg!(
+        "SettleMarketCAPPM complete. MarketID={}, Outcome={:?}",
+        market_id,
+        outcome
+    );
     Ok(())
 }

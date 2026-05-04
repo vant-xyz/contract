@@ -6486,6 +6486,7 @@ dependencies = [
  "solana-program",
  "solana-program-test",
  "solana-sdk",
+ "solana-security-txt",
  "tokio",
 ]
 

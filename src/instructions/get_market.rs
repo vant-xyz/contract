@@ -7,7 +7,7 @@ use solana_program::{
 
 use crate::{
     constants::MARKET_SEED,
-    state::{Market, MarketType, Direction, Outcome},
+    state::{Direction, Market, MarketType, Outcome},
     validation::{validate_accounts, verify_pda, verify_program_owned},
 };
 
@@ -23,7 +23,7 @@ pub fn process_get_market<'a>(
 
     validate_accounts(accounts, 1, false, &[])?;
 
-    let accounts_iter  = &mut accounts.iter();
+    let accounts_iter = &mut accounts.iter();
     let market_account = next_account_info(accounts_iter)?;
 
     let market_id_bytes = market_id.as_bytes();
@@ -37,10 +37,13 @@ pub fn process_get_market<'a>(
 
     // logging all fields
     msg!("MARKET_ID:{}", market_id);
-    msg!("MARKET_TYPE:{}", match market.market_type {
-        MarketType::CAPPM => "CAPPM",
-        MarketType::GEM   => "GEM",
-    });
+    msg!(
+        "MARKET_TYPE:{}",
+        match market.market_type {
+            MarketType::CAPPM => "CAPPM",
+            MarketType::GEM => "GEM",
+        }
+    );
     msg!("IS_RESOLVED:{}", market.is_resolved);
     msg!("CREATOR:{}", market.creator);
     msg!("APPROVED_SETTLER:{}", market.approved_settler);
@@ -54,10 +57,13 @@ pub fn process_get_market<'a>(
     msg!("ASSET:{}", market.asset);
 
     if let Some(direction) = market.direction {
-        msg!("DIRECTION:{}", match direction {
-            Direction::Above => "Above",
-            Direction::Below => "Below",
-        });
+        msg!(
+            "DIRECTION:{}",
+            match direction {
+                Direction::Above => "Above",
+                Direction::Below => "Below",
+            }
+        );
     }
     if let Some(target) = market.target_price {
         msg!("TARGET_PRICE:{}", target);
@@ -69,10 +75,13 @@ pub fn process_get_market<'a>(
         msg!("END_PRICE:{}", end);
     }
     if let Some(outcome) = market.outcome {
-        msg!("OUTCOME:{}", match outcome {
-            Outcome::Yes => "YES",
-            Outcome::No  => "NO",
-        });
+        msg!(
+            "OUTCOME:{}",
+            match outcome {
+                Outcome::Yes => "YES",
+                Outcome::No => "NO",
+            }
+        );
     }
     if !market.outcome_description.is_empty() {
         msg!("OUTCOME_DESCRIPTION:{}", market.outcome_description);

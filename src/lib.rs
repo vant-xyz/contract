@@ -4,6 +4,8 @@
 use solana_program::{
     account_info::AccountInfo, entrypoint, entrypoint::ProgramResult, msg, pubkey::Pubkey,
 };
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
 
 pub mod constants;
 pub mod error;
@@ -25,6 +27,17 @@ use utils::read_string;
 
 #[cfg(not(feature = "no-entrypoint"))]
 entrypoint!(process_instruction);
+
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    name: "Vantic OVM Program",
+    project_url: "https://vantic.xyz",
+    contacts: "email:security@vantic.xyz",
+    policy: "https://vantic.xyz/privacy-policy",
+    preferred_languages: "en",
+    source_code: "https://github.com/vant-xyz/contract",
+    source_revision: "682f894543bfe69380f8d157873266d5c22ea36f"
+}
 
 pub fn process_instruction<'a>(
     program_id: &Pubkey,

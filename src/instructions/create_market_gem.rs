@@ -5,8 +5,7 @@ use solana_program::{
     program::invoke_signed,
     pubkey::Pubkey,
     rent::Rent,
-    system_instruction,
-    system_program,
+    system_instruction, system_program,
     sysvar::Sysvar,
 };
 
@@ -30,9 +29,9 @@ pub fn process_create_market_gem<'a>(
 
     validate_accounts(accounts, 3, false, &[0])?;
 
-    let accounts_iter          = &mut accounts.iter();
-    let market_account         = next_account_info(accounts_iter)?;
-    let creator                = next_account_info(accounts_iter)?;
+    let accounts_iter = &mut accounts.iter();
+    let market_account = next_account_info(accounts_iter)?;
+    let creator = next_account_info(accounts_iter)?;
     let system_program_account = next_account_info(accounts_iter)?;
 
     if !creator.is_signer {
@@ -52,19 +51,23 @@ pub fn process_create_market_gem<'a>(
 
     let mut offset = 0usize;
 
-    let market_id        = read_string(data, &mut offset, MAX_MARKET_ID_LEN)?;
-    let title            = read_string(data, &mut offset, MAX_TITLE_LEN)?;
-    let description      = read_string(data, &mut offset, MAX_DESCRIPTION_LEN)?;
-    let start_time_utc   = read_u64(data, &mut offset)?;
+    let market_id = read_string(data, &mut offset, MAX_MARKET_ID_LEN)?;
+    let title = read_string(data, &mut offset, MAX_TITLE_LEN)?;
+    let description = read_string(data, &mut offset, MAX_DESCRIPTION_LEN)?;
+    let start_time_utc = read_u64(data, &mut offset)?;
     let duration_seconds = read_u64(data, &mut offset)?;
-    let data_provider    = read_string(data, &mut offset, MAX_DATA_PROVIDER_LEN)?;
+    let data_provider = read_string(data, &mut offset, MAX_DATA_PROVIDER_LEN)?;
 
     msg!("MarketID: {}", market_id);
 
     let now = current_timestamp()?;
 
     if start_time_utc <= now {
-        msg!("start_time_utc ({}) must be in the future (now={})", start_time_utc, now);
+        msg!(
+            "start_time_utc ({}) must be in the future (now={})",
+            start_time_utc,
+            now
+        );
         return Err(MarketError::InvalidEndTime.into());
     }
 
@@ -93,29 +96,33 @@ pub fn process_create_market_gem<'a>(
             MARKET_ACCOUNT_SIZE as u64,
             program_id,
         ),
-        &[creator.clone(), market_account.clone(), system_program_account.clone()],
+        &[
+            creator.clone(),
+            market_account.clone(),
+            system_program_account.clone(),
+        ],
         &[signer_seeds],
     )?;
 
     let market = Market {
-        market_type:         MarketType::GEM,
-        is_resolved:         false,
-        creator:             *creator.key,
-        approved_settler:    APPROVED_SETTLER,
+        market_type: MarketType::GEM,
+        is_resolved: false,
+        creator: *creator.key,
+        approved_settler: APPROVED_SETTLER,
         title,
         description,
         start_time_utc,
         end_time_utc,
         duration_seconds,
         data_provider,
-        created_at:          now,
+        created_at: now,
         bump,
-        asset:               String::new(), // GEM markets have no price asset
-        direction:           None,
-        target_price:        None,
-        current_price:       None,
-        end_price:           None,
-        outcome:             None,
+        asset: String::new(), // GEM markets have no price asset
+        direction: None,
+        target_price: None,
+        current_price: None,
+        end_price: None,
+        outcome: None,
         outcome_description: String::new(),
     };
 

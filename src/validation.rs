@@ -1,9 +1,4 @@
-use solana_program::{
-    account_info::AccountInfo,
-    msg,
-    program_error::ProgramError,
-    pubkey::Pubkey,
-};
+use solana_program::{account_info::AccountInfo, msg, program_error::ProgramError, pubkey::Pubkey};
 
 use crate::error::MarketError;
 
@@ -13,7 +8,6 @@ pub fn validate_accounts<'a>(
     signer_required: bool,
     writable_indices: &[usize],
 ) -> Result<(), ProgramError> {
-    
     if accounts.len() < expected_len {
         msg!(
             "Account count mismatch: expected at least {}, got {}",
@@ -23,16 +17,18 @@ pub fn validate_accounts<'a>(
         return Err(MarketError::InvalidAccountCount.into());
     }
 
-    
     if signer_required && !accounts[0].is_signer {
         msg!("Account[0] must be a signer");
         return Err(MarketError::InvalidSigner.into());
     }
 
-    
     for &idx in writable_indices {
         if idx >= accounts.len() {
-            msg!("Writable index {} out of bounds (len={})", idx, accounts.len());
+            msg!(
+                "Writable index {} out of bounds (len={})",
+                idx,
+                accounts.len()
+            );
             return Err(MarketError::InvalidAccountIndex.into());
         }
         if !accounts[idx].is_writable {
@@ -40,7 +36,7 @@ pub fn validate_accounts<'a>(
             return Err(MarketError::InvalidWritable.into());
         }
     }
-    
+
     for &idx in writable_indices {
         if accounts[idx].executable {
             msg!("Account[{}] is executable — expected a data account", idx);

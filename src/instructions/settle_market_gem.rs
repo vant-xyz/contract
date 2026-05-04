@@ -12,7 +12,10 @@ use crate::{
     constants::{APPROVED_SETTLER, MARKET_SEED, MAX_OUTCOME_DESCRIPTION_LEN},
     error::MarketError,
     state::{Market, Outcome},
-    utils::{current_timestamp, read_signature, read_string, read_u8, verify_settlement_signature_via_sysvar},
+    utils::{
+        current_timestamp, read_signature, read_string, read_u8,
+        verify_settlement_signature_via_sysvar,
+    },
     validation::{validate_accounts, verify_pda},
 };
 
@@ -34,12 +37,12 @@ pub fn process_settle_market_gem<'a>(
     // accounts: market_account, settler, instructions_sysvar, magic_program, magic_context
     validate_accounts(accounts, 5, false, &[0, 1, 4])?;
 
-    let accounts_iter       = &mut accounts.iter();
-    let market_account      = next_account_info(accounts_iter)?;
-    let settler             = next_account_info(accounts_iter)?;
+    let accounts_iter = &mut accounts.iter();
+    let market_account = next_account_info(accounts_iter)?;
+    let settler = next_account_info(accounts_iter)?;
     let instructions_sysvar = next_account_info(accounts_iter)?;
-    let magic_program       = next_account_info(accounts_iter)?;
-    let magic_context       = next_account_info(accounts_iter)?;
+    let magic_program = next_account_info(accounts_iter)?;
+    let magic_context = next_account_info(accounts_iter)?;
 
     if !settler.is_signer {
         msg!("Settler must be a signer");
@@ -47,7 +50,11 @@ pub fn process_settle_market_gem<'a>(
     }
 
     if settler.key != &APPROVED_SETTLER {
-        msg!("Unauthorized settler: expected {}, got {}", APPROVED_SETTLER, settler.key);
+        msg!(
+            "Unauthorized settler: expected {}, got {}",
+            APPROVED_SETTLER,
+            settler.key
+        );
         return Err(MarketError::UnauthorizedSettler.into());
     }
 
@@ -73,9 +80,9 @@ pub fn process_settle_market_gem<'a>(
 
     let mut offset = 0usize;
 
-    let outcome_byte         = read_u8(data, &mut offset)?;
-    let outcome              = Outcome::from_u8(outcome_byte)?;
-    let outcome_description  = read_string(data, &mut offset, MAX_OUTCOME_DESCRIPTION_LEN)?;
+    let outcome_byte = read_u8(data, &mut offset)?;
+    let outcome = Outcome::from_u8(outcome_byte)?;
+    let outcome_description = read_string(data, &mut offset, MAX_OUTCOME_DESCRIPTION_LEN)?;
     let _settlement_signature = read_signature(data, &mut offset)?;
 
     msg!("Outcome: {:?}", outcome);
@@ -96,18 +103,27 @@ pub fn process_settle_market_gem<'a>(
 
     let now = current_timestamp()?;
     if now < market.end_time_utc {
-        msg!("Market {} has not expired yet (end={}, now={})", market_id, market.end_time_utc, now);
+        msg!(
+            "Market {} has not expired yet (end={}, now={})",
+            market_id,
+            market.end_time_utc,
+            now
+        );
         return Err(MarketError::MarketNotExpired.into());
     }
 
     if settler.key != &market.approved_settler {
-        msg!("Settler {} does not match market.approved_settler {}", settler.key, market.approved_settler);
+        msg!(
+            "Settler {} does not match market.approved_settler {}",
+            settler.key,
+            market.approved_settler
+        );
         return Err(MarketError::UnauthorizedSettler.into());
     }
 
     let outcome_str = match outcome {
         Outcome::Yes => "YES",
-        Outcome::No  => "NO",
+        Outcome::No => "NO",
     };
     let expected_message = format!("VANT_GEM_SETTLEMENT:{}:{}", market_id, outcome_str);
     msg!("Expected settlement message: {}", expected_message);
@@ -118,17 +134,20 @@ pub fn process_settle_market_gem<'a>(
         expected_message.as_bytes(),
     )?;
 
-    market.is_resolved         = true;
-    market.outcome             = Some(outcome);
+    market.is_resolved = true;
+    market.outcome = Some(outcome);
     market.outcome_description = outcome_description;
-    market.end_price           = None;
+    market.end_price = None;
 
     {
         let mut account_data = market_account.try_borrow_mut_data()?;
         market.pack(&mut account_data)?;
     }
 
-    msg!("Market state updated: is_resolved=true, outcome={:?}", outcome);
+    msg!(
+        "Market state updated: is_resolved=true, outcome={:?}",
+        outcome
+    );
 
     let commit_ix = Instruction {
         program_id: MAGIC_PROGRAM_ID,
@@ -142,9 +161,18 @@ pub fn process_settle_market_gem<'a>(
 
     invoke(
         &commit_ix,
-        &[settler.clone(), magic_context.clone(), market_account.clone(), magic_program.clone()],
+        &[
+            settler.clone(),
+            magic_context.clone(),
+            market_account.clone(),
+            magic_program.clone(),
+        ],
     )?;
 
-    msg!("SettleMarketGEM complete. MarketID={}, Outcome={:?}", market_id, outcome);
+    msg!(
+        "SettleMarketGEM complete. MarketID={}, Outcome={:?}",
+        market_id,
+        outcome
+    );
     Ok(())
 }

@@ -29,7 +29,10 @@ struct DelegateArgs {
 }
 
 fn delegation_record_pda(market_pda: &Pubkey) -> (Pubkey, u8) {
-    Pubkey::find_program_address(&[b"delegation", market_pda.as_ref()], &DELEGATION_PROGRAM_ID)
+    Pubkey::find_program_address(
+        &[b"delegation", market_pda.as_ref()],
+        &DELEGATION_PROGRAM_ID,
+    )
 }
 
 fn delegation_metadata_pda(market_pda: &Pubkey) -> (Pubkey, u8) {

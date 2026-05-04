@@ -1,15 +1,11 @@
 use solana_program::{msg, program_error::ProgramError, pubkey::Pubkey};
 
 use crate::{
-    constants::MAX_OUTCOME_DESCRIPTION_LEN,
-    error::MarketError,
-    state::market::Outcome,
-    utils::*,
+    constants::MAX_OUTCOME_DESCRIPTION_LEN, error::MarketError, state::market::Outcome, utils::*,
 };
 
 #[derive(Debug, Clone)]
 pub struct SettlementLog {
-    
     pub market: Pubkey,
     pub settled_at: u64,
     pub settled_by: Pubkey,
@@ -41,7 +37,12 @@ impl SettlementLog {
         }
 
         write_u8(dst, &mut offset, self.outcome as u8)?;
-        write_string(dst, &mut offset, &self.outcome_description, MAX_OUTCOME_DESCRIPTION_LEN)?;
+        write_string(
+            dst,
+            &mut offset,
+            &self.outcome_description,
+            MAX_OUTCOME_DESCRIPTION_LEN,
+        )?;
         write_bytes32(dst, &mut offset, &self.signature_hash)?;
         write_bytes32(dst, &mut offset, &self.message_hash)?;
         write_u8(dst, &mut offset, self.bump)?;
@@ -50,7 +51,6 @@ impl SettlementLog {
         Ok(())
     }
 
-    
     pub fn unpack(src: &[u8]) -> Result<Self, ProgramError> {
         if src.is_empty() {
             msg!("SettlementLog::unpack: empty data");
@@ -59,20 +59,24 @@ impl SettlementLog {
 
         let mut offset = 0usize;
 
-        let market     = read_pubkey(src, &mut offset)?;
+        let market = read_pubkey(src, &mut offset)?;
         let settled_at = read_u64(src, &mut offset)?;
         let settled_by = read_pubkey(src, &mut offset)?;
 
         let end_price_present = read_u8(src, &mut offset)?;
-        let end_price_val     = read_u64(src, &mut offset)?;
-        let end_price         = if end_price_present == 1 { Some(end_price_val) } else { None };
+        let end_price_val = read_u64(src, &mut offset)?;
+        let end_price = if end_price_present == 1 {
+            Some(end_price_val)
+        } else {
+            None
+        };
 
-        let outcome_byte        = read_u8(src, &mut offset)?;
-        let outcome             = Outcome::from_u8(outcome_byte)?;
+        let outcome_byte = read_u8(src, &mut offset)?;
+        let outcome = Outcome::from_u8(outcome_byte)?;
         let outcome_description = read_string(src, &mut offset, MAX_OUTCOME_DESCRIPTION_LEN)?;
-        let signature_hash      = read_bytes32(src, &mut offset)?;
-        let message_hash        = read_bytes32(src, &mut offset)?;
-        let bump                = read_u8(src, &mut offset)?;
+        let signature_hash = read_bytes32(src, &mut offset)?;
+        let message_hash = read_bytes32(src, &mut offset)?;
+        let bump = read_u8(src, &mut offset)?;
 
         Ok(SettlementLog {
             market,

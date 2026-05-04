@@ -1,12 +1,6 @@
 use solana_program::{
-    hash::hashv,
-    msg,
-    program_error::ProgramError,
-    pubkey::Pubkey,
-    sysvar::clock::Clock,
-    sysvar::Sysvar,
-    ed25519_program,
-    account_info::AccountInfo,
+    account_info::AccountInfo, ed25519_program, hash::hashv, msg, program_error::ProgramError,
+    pubkey::Pubkey, sysvar::clock::Clock, sysvar::Sysvar,
 };
 
 use crate::error::MarketError;
@@ -18,7 +12,9 @@ pub fn write_u8(dst: &mut [u8], offset: &mut usize, val: u8) -> Result<(), Progr
         return Err(MarketError::SerializationError.into());
     }
     dst[*offset] = val;
-    *offset = offset.checked_add(1).ok_or(MarketError::ArithmeticOverflow)?;
+    *offset = offset
+        .checked_add(1)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     Ok(())
 }
 
@@ -29,7 +25,9 @@ pub fn write_bool(dst: &mut [u8], offset: &mut usize, val: bool) -> Result<(), P
 
 #[inline]
 pub fn write_u64(dst: &mut [u8], offset: &mut usize, val: u64) -> Result<(), ProgramError> {
-    let end = offset.checked_add(8).ok_or(MarketError::ArithmeticOverflow)?;
+    let end = offset
+        .checked_add(8)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     if end > dst.len() {
         msg!("write_u64: buffer overflow at offset {}", offset);
         return Err(MarketError::SerializationError.into());
@@ -41,7 +39,9 @@ pub fn write_u64(dst: &mut [u8], offset: &mut usize, val: u64) -> Result<(), Pro
 
 #[inline]
 pub fn write_pubkey(dst: &mut [u8], offset: &mut usize, key: &Pubkey) -> Result<(), ProgramError> {
-    let end = offset.checked_add(32).ok_or(MarketError::ArithmeticOverflow)?;
+    let end = offset
+        .checked_add(32)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     if end > dst.len() {
         msg!("write_pubkey: buffer overflow at offset {}", offset);
         return Err(MarketError::SerializationError.into());
@@ -73,9 +73,13 @@ pub fn write_string(
     }
 
     dst[*offset..*offset + 2].copy_from_slice(&len_u16.to_le_bytes());
-    *offset = offset.checked_add(2).ok_or(MarketError::ArithmeticOverflow)?;
+    *offset = offset
+        .checked_add(2)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     dst[*offset..*offset + len].copy_from_slice(&bytes[..len]);
-    *offset = offset.checked_add(len).ok_or(MarketError::ArithmeticOverflow)?;
+    *offset = offset
+        .checked_add(len)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     Ok(())
 }
 
@@ -85,7 +89,9 @@ pub fn write_bytes32(
     offset: &mut usize,
     val: &[u8; 32],
 ) -> Result<(), ProgramError> {
-    let end = offset.checked_add(32).ok_or(MarketError::ArithmeticOverflow)?;
+    let end = offset
+        .checked_add(32)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     if end > dst.len() {
         msg!("write_bytes32: buffer overflow at offset {}", offset);
         return Err(MarketError::SerializationError.into());
@@ -102,7 +108,9 @@ pub fn read_u8(src: &[u8], offset: &mut usize) -> Result<u8, ProgramError> {
         return Err(MarketError::SerializationError.into());
     }
     let val = src[*offset];
-    *offset = offset.checked_add(1).ok_or(MarketError::ArithmeticOverflow)?;
+    *offset = offset
+        .checked_add(1)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     Ok(val)
 }
 
@@ -113,7 +121,9 @@ pub fn read_bool(src: &[u8], offset: &mut usize) -> Result<bool, ProgramError> {
 
 #[inline]
 pub fn read_u64(src: &[u8], offset: &mut usize) -> Result<u64, ProgramError> {
-    let end = offset.checked_add(8).ok_or(MarketError::ArithmeticOverflow)?;
+    let end = offset
+        .checked_add(8)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     if end > src.len() {
         msg!("read_u64: buffer underflow at offset {}", offset);
         return Err(MarketError::SerializationError.into());
@@ -127,7 +137,9 @@ pub fn read_u64(src: &[u8], offset: &mut usize) -> Result<u64, ProgramError> {
 
 #[inline]
 pub fn read_pubkey(src: &[u8], offset: &mut usize) -> Result<Pubkey, ProgramError> {
-    let end = offset.checked_add(32).ok_or(MarketError::ArithmeticOverflow)?;
+    let end = offset
+        .checked_add(32)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     if end > src.len() {
         msg!("read_pubkey: buffer underflow at offset {}", offset);
         return Err(MarketError::SerializationError.into());
@@ -141,9 +153,14 @@ pub fn read_pubkey(src: &[u8], offset: &mut usize) -> Result<Pubkey, ProgramErro
 
 #[inline]
 pub fn read_string(src: &[u8], offset: &mut usize, max_len: usize) -> Result<String, ProgramError> {
-    let len_end = offset.checked_add(2).ok_or(MarketError::ArithmeticOverflow)?;
+    let len_end = offset
+        .checked_add(2)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     if len_end > src.len() {
-        msg!("read_string: buffer underflow reading length at offset {}", offset);
+        msg!(
+            "read_string: buffer underflow reading length at offset {}",
+            offset
+        );
         return Err(MarketError::SerializationError.into());
     }
     let len = u16::from_le_bytes(
@@ -158,9 +175,14 @@ pub fn read_string(src: &[u8], offset: &mut usize, max_len: usize) -> Result<Str
         return Err(MarketError::SerializationError.into());
     }
 
-    let str_end = offset.checked_add(len).ok_or(MarketError::ArithmeticOverflow)?;
+    let str_end = offset
+        .checked_add(len)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     if str_end > src.len() {
-        msg!("read_string: buffer underflow reading string data at offset {}", offset);
+        msg!(
+            "read_string: buffer underflow reading string data at offset {}",
+            offset
+        );
         return Err(MarketError::SerializationError.into());
     }
 
@@ -173,7 +195,9 @@ pub fn read_string(src: &[u8], offset: &mut usize, max_len: usize) -> Result<Str
 
 #[inline]
 pub fn read_bytes32(src: &[u8], offset: &mut usize) -> Result<[u8; 32], ProgramError> {
-    let end = offset.checked_add(32).ok_or(MarketError::ArithmeticOverflow)?;
+    let end = offset
+        .checked_add(32)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     if end > src.len() {
         msg!("read_bytes32: buffer underflow at offset {}", offset);
         return Err(MarketError::SerializationError.into());
@@ -188,15 +212,13 @@ pub fn sha256(data: &[u8]) -> [u8; 32] {
     hashv(&[data]).to_bytes()
 }
 
-
 pub fn verify_settlement_signature_via_sysvar(
     instructions_sysvar: &AccountInfo,
     expected_signer: &Pubkey,
     expected_message: &[u8],
 ) -> Result<(), ProgramError> {
     use solana_program::sysvar::instructions::{
-        load_current_index_checked,
-        load_instruction_at_checked,
+        load_current_index_checked, load_instruction_at_checked,
     };
 
     let current_index = load_current_index_checked(instructions_sysvar)
@@ -215,7 +237,10 @@ pub fn verify_settlement_signature_via_sysvar(
 
     let ed25519_ix = load_instruction_at_checked(ed25519_ix_index as usize, instructions_sysvar)
         .map_err(|_| {
-            msg!("Failed to load ed25519 instruction at index {}", ed25519_ix_index);
+            msg!(
+                "Failed to load ed25519 instruction at index {}",
+                ed25519_ix_index
+            );
             MarketError::InvalidSettlementSignature
         })?;
     if ed25519_ix.program_id != ed25519_program::id() {
@@ -226,8 +251,6 @@ pub fn verify_settlement_signature_via_sysvar(
         );
         return Err(MarketError::InvalidSettlementSignature.into());
     }
-
-
 
     let data = &ed25519_ix.data;
 
@@ -243,10 +266,12 @@ pub fn verify_settlement_signature_via_sysvar(
     }
 
     let pubkey_offset = u16::from_le_bytes([data[6], data[7]]) as usize;
-    let msg_offset    = u16::from_le_bytes([data[10], data[11]]) as usize;
-    let msg_size      = u16::from_le_bytes([data[12], data[13]]) as usize;
+    let msg_offset = u16::from_le_bytes([data[10], data[11]]) as usize;
+    let msg_size = u16::from_le_bytes([data[12], data[13]]) as usize;
 
-    let pubkey_end = pubkey_offset.checked_add(32).ok_or(MarketError::InvalidSettlementSignature)?;
+    let pubkey_end = pubkey_offset
+        .checked_add(32)
+        .ok_or(MarketError::InvalidSettlementSignature)?;
     if pubkey_end > data.len() {
         msg!("ed25519 data too short for pubkey");
         return Err(MarketError::InvalidSettlementSignature.into());
@@ -265,7 +290,9 @@ pub fn verify_settlement_signature_via_sysvar(
         return Err(MarketError::InvalidSettlementSignature.into());
     }
 
-    let msg_end = msg_offset.checked_add(msg_size).ok_or(MarketError::InvalidSettlementSignature)?;
+    let msg_end = msg_offset
+        .checked_add(msg_size)
+        .ok_or(MarketError::InvalidSettlementSignature)?;
     if msg_end > data.len() {
         msg!("ed25519 data too short for message");
         return Err(MarketError::InvalidSettlementSignature.into());
@@ -283,7 +310,6 @@ pub fn verify_settlement_signature_via_sysvar(
     Ok(())
 }
 
-
 pub fn current_timestamp() -> Result<u64, ProgramError> {
     let clock = Clock::get().map_err(|e| {
         msg!("Failed to get Clock sysvar: {:?}", e);
@@ -293,7 +319,9 @@ pub fn current_timestamp() -> Result<u64, ProgramError> {
 }
 
 pub fn read_signature(src: &[u8], offset: &mut usize) -> Result<[u8; 64], ProgramError> {
-    let end = offset.checked_add(64).ok_or(MarketError::ArithmeticOverflow)?;
+    let end = offset
+        .checked_add(64)
+        .ok_or(MarketError::ArithmeticOverflow)?;
     if end > src.len() {
         msg!("read_signature: buffer underflow at offset {}", offset);
         return Err(MarketError::InvalidInstructionData.into());
