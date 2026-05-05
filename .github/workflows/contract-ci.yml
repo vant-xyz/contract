@@ -81,9 +81,11 @@ jobs:
         run: cargo install solana-verify --locked
 
       - name: Run solana-verify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           solana-verify verify-from-repo \
-            https://github.com/${{ github.repository }} \
+            https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} \
             --program-id "$VERIFY_PROGRAM_ID" \
             --commit-hash "${{ github.sha }}" \
             --url "$VERIFY_CLUSTER_URL" \
