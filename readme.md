@@ -2,6 +2,18 @@
 
 Native Solana program for Vantic prediction markets, running on MagicBlock Ephemeral Rollups.
 
+**Program ID:** `2ffqwm4YARP7DVFT3Wz2UuWzCpAPNid7L1FdrJzt5sxg`
+
+This program is a settlement log and VS event engine. It does not hold user funds, process bets, or distribute payouts. All financial logic runs in the Vantic Go backend. The contract exists to give users cryptographic, on-chain proof that markets were resolved correctly and that they can verify independently.
+
+## MagicBlock Ephemeral Rollups
+
+All market state runs on a MagicBlock Ephemeral Rollup, not directly on Solana L1. The ER is a session-based execution environment that delegates account state from base chain, processes transactions with sub-second finality, and commits final state back to Solana when the session closes.
+
+Settlement instructions are sent to the ER RPC (`devnet-eu.magicblock.app`), not the base Solana RPC. `DelegateMarket` moves a market account into an active ER session. `SettleMarket` resolves the outcome on the ER and executes a `commit_and_undelegate` CPI to `Magic11111111111111111111111111111111111111`, writing final state back to L1. Once undelegated, the outcome is immutable on base chain and readable by anyone without going through the ER.
+
+The program handles MagicBlock's undelegation callback discriminator `[196, 28, 41, 206, 48, 37, 51, 167]` natively, which is required for successful finalization on the base layer.
+
 ## How it works
 
 1. User bets → Vantic Core Service records (off-chain)
@@ -76,3 +88,7 @@ solana program deploy target/deploy/vant_crypto.so --url devnet --keypair vant_c
 ## Test
 
 cargo test
+
+## License
+
+See [LICENSE](./LICENSE).
